@@ -26,7 +26,7 @@ bbl_payload: $(BBL_PAYLOAD)
 
 raw_logo.o: bbl_logo_file
 
-ifeq (@BBL_ENABLE_LOGO@,1)
+ifeq (1,1)
 bbl_logo_file: @BBL_LOGO_FILE@
 	cat $^ | sed 's/$$/\r/' > $@
 else
