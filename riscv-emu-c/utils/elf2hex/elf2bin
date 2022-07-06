@@ -2,7 +2,7 @@
 
 unset input
 unset output
-objcopy="/home/dean/Linux-ext/riscv-gnu-toolchain/build/bin/riscv64-unknown-linux-gnu-objcopy"
+objcopy=""
 while [[ "$1" != "" ]]
 do
     case "$1" in

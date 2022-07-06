@@ -66,7 +66,6 @@ int main(int argc, char** argv){
     else if (argc>2){
         cout << "ERROR : Please provide the ELF image to run" << endl;
         cout << "USAGE : ./emu bbl" <<endl;
-        exit(1);
     }
 
     

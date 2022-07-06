@@ -1,2 +1,2 @@
 #!/bin/sh
-exec /usr/bin/python3 '/usr/local/lib/python3.6/site-packages/freedom-bin2hex.py' ${1+"$@"}
+exec /usr/bin/python '/usr/local/lib/python3.8/site-packages/freedom-bin2hex.py' ${1+"$@"}

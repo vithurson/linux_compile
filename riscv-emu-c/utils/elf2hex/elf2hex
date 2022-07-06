@@ -3,8 +3,8 @@
 unset bit_width
 unset input
 unset output
-objcopy="riscv64-unknown-linux-gnu-objcopy"
-bin2hex="riscv64-unknown-elf-bin2hex"
+objcopy="riscv64-linux-objcopy"
+bin2hex="./utils/elf2hex/riscv64-unknown-elf-bin2hex"
 while [[ "$1" != "" ]]
 do
     case "$1" in
