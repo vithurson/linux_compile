@@ -385,6 +385,7 @@ int main(int argc, char** argv){
         if ((PC%4)!=0){
             cout << "PC mis aligned "<<hex<<PC <<endl;
         }
+        //printf("PC %0x ins %0x PHY_PC %0x\n",PC,instruction,PC_phy);
         lPC = PC;
         PC += 4;
         switch(opcode){
@@ -1663,6 +1664,7 @@ int main(int argc, char** argv){
 
             default :
                 printf("default\n");
+                exit(0);
                 break;
         }
         

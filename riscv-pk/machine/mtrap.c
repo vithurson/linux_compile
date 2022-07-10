@@ -41,9 +41,9 @@ static uintptr_t mcall_console_putchar(uint8_t ch)
 {
   //*(int*) 0xe0001030 = ch;
 
-  volatile int *x = (int *)0xe000102c;
+  volatile int *x = (int *)0xe000002c;
   while ((*x&16)==16);
-  *(int*) 0xe0001030= ch;
+  *(int*) 0xe0000030= ch;
   
   // if (uart) {
   //   uart_putchar(ch);
@@ -96,11 +96,11 @@ static uintptr_t mcall_console_getchar()
 //   } else {
 //     return '\0';
 // }
-  volatile int *x = (int*)0xe000102c;
+  volatile int *x = (int*)0xe000002c;
   if((*x&0x2)==2){                     //checking the data available bit in line status reg
     return -1;
   }else{
-    int *c =(int *) 0xe0001030;
+    int *c =(int *) 0xe0000030;
     return *c;
   }
 

@@ -77,8 +77,8 @@ typedef uint64_t data_t;
 
 #define MEM_SIZE 28
 #define XLEN     64
-#define FIFO_ADDR_RX 0xe000102c
-#define FIFO_ADDR_TX 0xe0001030
+#define FIFO_ADDR_RX 0xe000002c
+#define FIFO_ADDR_TX 0xe0000030
 // #define FIFO_ADDR_RX 0xe000102c
 // #define FIFO_ADDR_TX 0xe0001030
 
@@ -110,7 +110,7 @@ bool csr_read_success = false;
 
 #define CLINT_BASE 0x2000000
 #define CLINT_SIZE 0x00c0000
-#define PLIC_BASE 0x40100000
+#define PLIC_BASE 0x40000000
 #define PLIC_SIZE 0x400000
 #define VIRTIO_BASE 0x40010000
 #define VIRTIO_SIZE 0x1000
