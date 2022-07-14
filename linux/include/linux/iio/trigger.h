@@ -1,10 +1,7 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
 /* The industrial I/O core, trigger handling functions
  *
  * Copyright (c) 2008 Jonathan Cameron
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License version 2 as published by
- * the Free Software Foundation.
  */
 #include <linux/irq.h>
 #include <linux/module.h>
@@ -24,7 +21,7 @@ struct iio_trigger;
 /**
  * struct iio_trigger_ops - operations structure for an iio_trigger.
  * @set_trigger_state:	switch on/off the trigger on demand
- * @try_reenable:	function to reenable the trigger when the
+ * @reenable:		function to reenable the trigger when the
  *			use count is zero (may be NULL)
  * @validate_device:	function to validate the device when the
  *			current trigger gets changed.
@@ -34,7 +31,7 @@ struct iio_trigger;
  **/
 struct iio_trigger_ops {
 	int (*set_trigger_state)(struct iio_trigger *trig, bool state);
-	int (*try_reenable)(struct iio_trigger *trig);
+	void (*reenable)(struct iio_trigger *trig);
 	int (*validate_device)(struct iio_trigger *trig,
 			       struct iio_dev *indio_dev);
 };
@@ -58,6 +55,7 @@ struct iio_trigger_ops {
  * @attached_own_device:[INTERN] if we are using our own device as trigger,
  *			i.e. if we registered a poll function to the same
  *			device as the one providing the trigger.
+ * @reenable_work:	[INTERN] work item used to ensure reenable can sleep.
  **/
 struct iio_trigger {
 	const struct iio_trigger_ops	*ops;
@@ -77,6 +75,7 @@ struct iio_trigger {
 	unsigned long pool[BITS_TO_LONGS(CONFIG_IIO_CONSUMERS_PER_TRIGGER)];
 	struct mutex			pool_lock;
 	bool				attached_own_device;
+	struct work_struct		reenable_work;
 };
 
 
@@ -100,7 +99,7 @@ static inline struct iio_trigger *iio_trigger_get(struct iio_trigger *trig)
 }
 
 /**
- * iio_device_set_drvdata() - Set trigger driver data
+ * iio_trigger_set_drvdata() - Set trigger driver data
  * @trig: IIO trigger structure
  * @data: Driver specific data
  *
@@ -144,9 +143,6 @@ int __devm_iio_trigger_register(struct device *dev,
  **/
 void iio_trigger_unregister(struct iio_trigger *trig_info);
 
-void devm_iio_trigger_unregister(struct device *dev,
-				 struct iio_trigger *trig_info);
-
 /**
  * iio_trigger_set_immutable() - set an immutable trigger on destination
  *
@@ -167,7 +163,8 @@ void iio_trigger_poll_chained(struct iio_trigger *trig);
 
 irqreturn_t iio_trigger_generic_data_rdy_poll(int irq, void *private);
 
-__printf(1, 2) struct iio_trigger *iio_trigger_alloc(const char *fmt, ...);
+__printf(2, 3)
+struct iio_trigger *iio_trigger_alloc(struct device *parent, const char *fmt, ...);
 void iio_trigger_free(struct iio_trigger *trig);
 
 /**

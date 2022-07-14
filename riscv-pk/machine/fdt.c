@@ -9,9 +9,14 @@
 
 static inline uint32_t bswap(uint32_t x)
 {
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
   uint32_t y = (x & 0x00FF00FF) <<  8 | (x & 0xFF00FF00) >>  8;
   uint32_t z = (y & 0x0000FFFF) << 16 | (y & 0xFFFF0000) >> 16;
   return z;
+#else
+  /* No need to swap on big endian */
+  return x;
+#endif
 }
 
 static inline int isstring(char c)
@@ -124,6 +129,11 @@ const uint32_t *fdt_get_size(const struct fdt_scan_node *node, const uint32_t *v
   for (int cells = node->size_cells; cells > 0; --cells)
     *result = (*result << 32) + bswap(*value++);
   return value;
+}
+
+uint32_t fdt_get_value(const struct fdt_scan_prop *prop, uint32_t index)
+{
+  return bswap(prop->value[index]);
 }
 
 int fdt_string_list_index(const struct fdt_scan_prop *prop, const char *str)
@@ -434,10 +444,10 @@ static void plic_done(const struct fdt_scan_node *node, void *extra)
     if (hart < MAX_HARTS) {
       hls_t *hls = OTHER_HLS(hart);
       if (cpu_int == IRQ_M_EXT) {
-        hls->plic_m_ie     = (uintptr_t*)((uintptr_t)scan->reg + ENABLE_BASE + ENABLE_SIZE * index);
+        hls->plic_m_ie     = (uint32_t*)((uintptr_t)scan->reg + ENABLE_BASE + ENABLE_SIZE * index);
         hls->plic_m_thresh = (uint32_t*) ((uintptr_t)scan->reg + HART_BASE   + HART_SIZE   * index);
       } else if (cpu_int == IRQ_S_EXT) {
-        hls->plic_s_ie     = (uintptr_t*)((uintptr_t)scan->reg + ENABLE_BASE + ENABLE_SIZE * index);
+        hls->plic_s_ie     = (uint32_t*)((uintptr_t)scan->reg + ENABLE_BASE + ENABLE_SIZE * index);
         hls->plic_s_thresh = (uint32_t*) ((uintptr_t)scan->reg + HART_BASE   + HART_SIZE   * index);
       } else {
         printm("PLIC wired hart %d to wrong interrupt %d", hart, cpu_int);
@@ -646,8 +656,12 @@ static bool hart_filter_mask(const struct hart_filter *filter)
 {
   if (filter->mmu_type == NULL) return true;
   if (strcmp(filter->status, "okay")) return true;
+#if __riscv_xlen == 32
+  if (!strcmp(filter->mmu_type, "riscv,sv32")) return false;
+#else
   if (!strcmp(filter->mmu_type, "riscv,sv39")) return false;
   if (!strcmp(filter->mmu_type, "riscv,sv48")) return false;
+#endif
   printm("hart_filter_mask saw unknown hart type: status=\"%s\", mmu_type=\"%s\"\n",
          filter->status, filter->mmu_type);
   return true;

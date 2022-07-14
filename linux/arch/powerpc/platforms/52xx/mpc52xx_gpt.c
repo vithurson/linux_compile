@@ -1,15 +1,11 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
 /*
  * MPC5200 General Purpose Timer device driver
  *
  * Copyright (c) 2009 Secret Lab Technologies Ltd.
  * Copyright (c) 2008 Sascha Hauer <s.hauer@pengutronix.de>, Pengutronix
  *
- * This program is free software; you can redistribute  it and/or modify it
- * under  the terms of  the GNU General  Public License as published by the
- * Free Software Foundation;  either version 2 of the  License, or (at your
- * option) any later version.
- *
- * This file is a driver for the the General Purpose Timer (gpt) devices
+ * This file is a driver for the General Purpose Timer (gpt) devices
  * found on the MPC5200 SoC.  Each timer has an IO pin which can be used
  * for GPIO or can be used to raise interrupts.  The timer function can
  * be used independently from the IO pin, or it can be used to control
@@ -59,6 +55,8 @@
 #include <linux/list.h>
 #include <linux/mutex.h>
 #include <linux/of.h>
+#include <linux/of_address.h>
+#include <linux/of_irq.h>
 #include <linux/of_platform.h>
 #include <linux/of_gpio.h>
 #include <linux/kernel.h>
@@ -194,14 +192,11 @@ static struct irq_chip mpc52xx_gpt_irq_chip = {
 static void mpc52xx_gpt_irq_cascade(struct irq_desc *desc)
 {
 	struct mpc52xx_gpt_priv *gpt = irq_desc_get_handler_data(desc);
-	int sub_virq;
 	u32 status;
 
 	status = in_be32(&gpt->regs->status) & MPC52xx_GPT_STATUS_IRQMASK;
-	if (status) {
-		sub_virq = irq_linear_revmap(gpt->irqhost, 0);
-		generic_handle_irq(sub_virq);
-	}
+	if (status)
+		generic_handle_domain_irq(gpt->irqhost, 0);
 }
 
 static int mpc52xx_gpt_irq_map(struct irq_domain *h, unsigned int virq,
@@ -405,7 +400,7 @@ static int mpc52xx_gpt_do_start(struct mpc52xx_gpt_priv *gpt, u64 period,
 		set |= MPC52xx_GPT_MODE_CONTINUOUS;
 
 	/* Determine the number of clocks in the requested period.  64 bit
-	 * arithmatic is done here to preserve the precision until the value
+	 * arithmetic is done here to preserve the precision until the value
 	 * is scaled back down into the u32 range.  Period is in 'ns', bus
 	 * frequency is in Hz. */
 	clocks = period * (u64)gpt->ipb_freq;
@@ -509,7 +504,7 @@ u64 mpc52xx_gpt_timer_period(struct mpc52xx_gpt_priv *gpt)
 	if (prescale == 0)
 		prescale = 0x10000;
 	period = period * prescale * 1000000000ULL;
-	do_div(period, (u64)gpt->ipb_freq);
+	do_div(period, gpt->ipb_freq);
 	return period;
 }
 EXPORT_SYMBOL(mpc52xx_gpt_timer_period);
@@ -586,6 +581,7 @@ static long mpc52xx_wdt_ioctl(struct file *file, unsigned int cmd,
 		if (ret)
 			break;
 		/* fall through and return the timeout */
+		fallthrough;
 
 	case WDIOC_GETTIMEOUT:
 		/* we need to round here as to avoid e.g. the following
@@ -628,7 +624,7 @@ static int mpc52xx_wdt_open(struct inode *inode, struct file *file)
 	}
 
 	file->private_data = mpc52xx_gpt_wdt;
-	return nonseekable_open(inode, file);
+	return stream_open(inode, file);
 }
 
 static int mpc52xx_wdt_release(struct inode *inode, struct file *file)
@@ -654,6 +650,7 @@ static const struct file_operations mpc52xx_wdt_fops = {
 	.llseek		= no_llseek,
 	.write		= mpc52xx_wdt_write,
 	.unlocked_ioctl = mpc52xx_wdt_ioctl,
+	.compat_ioctl	= compat_ptr_ioctl,
 	.open		= mpc52xx_wdt_open,
 	.release	= mpc52xx_wdt_release,
 };

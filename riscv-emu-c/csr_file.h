@@ -448,13 +448,19 @@ struct satp_t{
         MODE = 0;
     }
     uint_t read_reg(){
+        //printf("satp read\n");
         return  ( ( (uint_t)(MODE & 0xF)<<60 ) + ((uint_t)ASID<<44) + (PPN & 0xFFFFFFFFFFFull));
     }
 
     void write_reg(uint_t val){
+       // printf("satp write %0lx",val);
         PPN = val & 0xFFFFFFFFFFFull;
-        ASID = (val>>44) & 0xFFFF ;
+        ASID = 0;//(val>>44) & 0xFFFF ;
         MODE = (val>>60) & 0xF ;
+        if(MODE!=8){
+            MODE=0;
+        }
+
     }
 } satp;
 
@@ -1071,6 +1077,10 @@ uint_t excep_function(uint_t PC, uint_t mecode , uint_t secode, uint_t uecode, p
         ecode = secode;
     else if (current_privilage == MMODE)
         ecode = mecode;
+    //printf("ecode %0d, curr_priv %0x\n",ecode,current_privilage);
+   // if(ecode!=12){
+   //     exit(1);
+   // }
 
     plevel_t handling_mode = trap_mode_select(ecode, false, current_privilage);
     //plevel_t handling_mode = current_privilage;
@@ -1436,82 +1446,13 @@ uint_t translate(uint_t virtual_addr, ttype_t translation_type, plevel_t current
             }
             return phy_addr.read_reg();
 
-            // switch(translation_type){
-            //     case INST : 
-                    
-            //         if (pte_final.X==0) // fetch page is not executable
-            //             return -1;
-
-            //         // if (current_privilage==UMODE){
-            //         //     if (pte_final.U==0) // mode is U but access in not
-            //         //         return -1;
-            //         // }
-            //         // else if (current_privilage==SMODE){
-            //         //     if (pte_final.U==1)  // cant execute user pages in smode
-            //         //         return -1;
-            //         // }
-            //         if(pte_final.A==0) 
-            //             return -1;
-            //         return phy_addr.read_reg();
-
-            //         break;
-
-            //     case LOAD :
-                    
-            //         if (pte_final.R==0 & (sstatus.mxr==0)) // leaf page is not readable
-            //             {
-            //                 // cout<<"not readable"<<endl;
-            //                 return -1;
-            //             }
-
-            //         if (current_privilage==UMODE){
-            //             if (pte_final.U==0) // mode is U but access in not
-            //                   {
-            //                 // cout<<"U readable"<<endl;
-            //                 return -1;
-            //             }
-            //         }
-            //         else if (current_privilage==SMODE){
-            //             if ((pte_final.U==1) & (sstatus.sum==0))  
-            //                   {
-            //                 // cout<<"sum readable"<<endl;
-            //                 return -1;
-            //             }
-            //         }
-
-            //         // if ( (pte_final.X==1) & (sstatus.mxr==0) ) //load from executable pages are not enabled
-            //         //         {
-            //         //         cout<<"mxr readable"<<endl;
-            //         //         return -1;
-            //         //     }
-            //         if(pte_final.A==0) 
-            //                {
-            //                 // cout<<"A readable"<<endl;
-            //                 return -1;
-            //             }
-
-            //         return phy_addr.read_reg();
-            //         break;
-
-            //     case STOR : 
-
-            //         if (pte_final.W==0) // leaf page is not writable
-            //             return -1;
-            //         if(pte_final.A==0) 
-            //             return -1;
-            //         if(pte_final.D==0) 
-            //             return -1;
-            //         return phy_addr.read_reg();
-            //         break;
-            // }
-
             break;
         case 9 : //Sv48
             cout << "Sv48 mode not implemented"<<endl;
-			exit(0);
             break;
         default :
-            cout << "Invalid or not-implemented translation mode : "<< satp.MODE <<endl;
+            cout << "Invalid or not-implemented translation mode : "<<hex <<unsigned(satp.MODE) <<endl;
+            return -1;
             break;
     }
 

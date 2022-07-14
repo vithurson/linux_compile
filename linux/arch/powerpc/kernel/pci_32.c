@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Common pmac/prep/chrp pci routines. -- Cort
  */
@@ -20,7 +21,6 @@
 
 #include <asm/processor.h>
 #include <asm/io.h>
-#include <asm/prom.h>
 #include <asm/sections.h>
 #include <asm/pci-bridge.h>
 #include <asm/ppc-pci.h>
@@ -36,7 +36,7 @@ int pcibios_assign_bus_offset = 1;
 EXPORT_SYMBOL(isa_io_base);
 EXPORT_SYMBOL(pci_dram_offset);
 
-void pcibios_make_OF_bus_map(void);
+void __init pcibios_make_OF_bus_map(void);
 
 static void fixup_cpc710_pci64(struct pci_dev* dev);
 static u8* pci_to_OF_bus_map;
@@ -108,7 +108,7 @@ make_one_node_map(struct device_node* node, u8 pci_bus)
 	}
 }
 	
-void
+void __init
 pcibios_make_OF_bus_map(void)
 {
 	int i;
@@ -205,6 +205,9 @@ pci_create_OF_bus_map(void)
 
 	of_prop = memblock_alloc(sizeof(struct property) + 256,
 				 SMP_CACHE_BYTES);
+	if (!of_prop)
+		panic("%s: Failed to allocate %zu bytes\n", __func__,
+		      sizeof(struct property) + 256);
 	dn = of_find_node_by_path("/");
 	if (dn) {
 		memset(of_prop, -1, sizeof(struct property) + 256);
@@ -258,6 +261,10 @@ static int __init pcibios_init(void)
 
 	/* Call common code to handle resource allocation */
 	pcibios_resource_survey();
+
+	/* Call machine dependent fixup */
+	if (ppc_md.pcibios_fixup)
+		ppc_md.pcibios_fixup();
 
 	/* Call machine dependent post-init code */
 	if (ppc_md.pcibios_after_init)

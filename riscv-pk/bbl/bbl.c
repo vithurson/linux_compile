@@ -9,7 +9,14 @@
 #include "fdt.h"
 #include <string.h>
 
+#ifdef BBL_PAYLOAD
 extern char _payload_start, _payload_end; /* internal payload */
+# define PAYLOAD_START &_payload_start
+# define PAYLOAD_END ROUNDUP((uintptr_t)&_payload_end, MEGAPAGE_SIZE)
+#else
+# define PAYLOAD_START (void*)(MEM_START + MEGAPAGE_SIZE)
+# define PAYLOAD_END (void*)(MEM_START + 0x2200000)
+#endif
 static const void* entry_point;
 long disabled_hart_mask;
 
@@ -23,8 +30,9 @@ static uintptr_t dtb_output()
    * address. The kernel's virtual mapping begins at its load address,
    * thus mandating device-tree is in physical memory after the kernel.
    */
-  uintptr_t end = kernel_end ? (uintptr_t)kernel_end : (uintptr_t)&_payload_end;
-  return (end + MEGAPAGE_SIZE - 1) / MEGAPAGE_SIZE * MEGAPAGE_SIZE;
+  uintptr_t end = kernel_end ? ROUNDUP((uintptr_t)kernel_end, MEGAPAGE_SIZE)
+                             : (uintptr_t)PAYLOAD_END;
+  return end;
 }
 
 static void filter_dtb(uintptr_t source)
@@ -33,11 +41,13 @@ static void filter_dtb(uintptr_t source)
   uint32_t size = fdt_size(source);
   memcpy((void*)dest, (void*)source, size);
 
+#ifndef CUSTOM_DTS
   // Remove information from the chained FDT
   filter_harts(dest, &disabled_hart_mask);
   filter_plic(dest);
   filter_compat(dest, "riscv,clint0");
   filter_compat(dest, "riscv,debug-013");
+#endif
 }
 
 static void protect_memory(void)
@@ -119,12 +129,10 @@ void boot_loader(uintptr_t dtb)
   print_logo();
 #endif
 #ifdef PK_PRINT_DEVICE_TREE
-  //printm("printing dt\n");
-  //fdt_print(dtb_output());
-  //printm("end dt\n");
+  fdt_print(dtb_output());
 #endif
   mb();
   /* Use optional FDT preloaded external payload if present */
-  entry_point = kernel_start ? kernel_start : &_payload_start;
+  entry_point = kernel_start ? kernel_start : PAYLOAD_START;
   boot_other_hart(0);
 }

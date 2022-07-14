@@ -1,12 +1,8 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
 /*
  * Ptrace test for GPR/FPR registers in TM Suspend context
  *
  * Copyright (C) 2015 Anshuman Khandual, IBM Corporation.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version
- * 2 of the License, or (at your option) any later version.
  */
 #include "ptrace.h"
 #include "ptrace-gpr.h"
@@ -69,7 +65,7 @@ trans:
 		: [gpr_1]"i"(GPR_1), [gpr_2]"i"(GPR_2), [gpr_4]"i"(GPR_4),
 		[sprn_texasr] "i" (SPRN_TEXASR), [flt_1] "b" (&a),
 		[flt_4] "b" (&d)
-		: "memory", "r5", "r6", "r7",
+		: "memory", "r0", "r5", "r6", "r7",
 		"r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15",
 		"r16", "r17", "r18", "r19", "r20", "r21", "r22", "r23",
 		"r24", "r25", "r26", "r27", "r28", "r29", "r30", "r31"
@@ -123,6 +119,7 @@ int ptrace_tm_spd_gpr(void)
 	int ret, status;
 
 	SKIP_IF(!have_htm());
+	SKIP_IF(htm_is_synthetic());
 	shm_id = shmget(IPC_PRIVATE, sizeof(int) * 3, 0777|IPC_CREAT);
 	pid = fork();
 	if (pid < 0) {

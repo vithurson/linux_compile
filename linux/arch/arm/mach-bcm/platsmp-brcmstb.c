@@ -59,7 +59,7 @@ static u32 hif_cont_reg;
 /*
  * We must quiesce a dying CPU before it can be killed by the boot CPU. Because
  * one or more cache may be disabled, we must flush to ensure coherency. We
- * cannot use traditionl completion structures or spinlocks as they rely on
+ * cannot use traditional completion structures or spinlocks as they rely on
  * coherency.
  */
 static DEFINE_PER_CPU_ALIGNED(int, per_cpu_sw_state);
@@ -334,11 +334,14 @@ static void __init brcmstb_cpu_ctrl_setup(unsigned int max_cpus)
 
 	rc = setup_hifcpubiuctrl_regs(np);
 	if (rc)
-		return;
+		goto out_put_node;
 
 	rc = setup_hifcont_regs(np);
 	if (rc)
-		return;
+		goto out_put_node;
+
+out_put_node:
+	of_node_put(np);
 }
 
 static int brcmstb_boot_secondary(unsigned int cpu, struct task_struct *idle)

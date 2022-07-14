@@ -8,6 +8,7 @@
 #include <linux/mutex.h>
 #include <linux/list.h>
 #include <linux/slab.h>
+#include <asm/sections.h>
 
 /* Whitelist of symbols that can be overridden for error injection. */
 static LIST_HEAD(error_injection_list);
@@ -64,7 +65,7 @@ static void populate_error_injection_list(struct error_injection_entry *start,
 
 	mutex_lock(&ei_mutex);
 	for (iter = start; iter < end; iter++) {
-		entry = arch_deref_entry_point((void *)iter->addr);
+		entry = (unsigned long)dereference_symbol_descriptor((void *)iter->addr);
 
 		if (!kernel_text_address(entry) ||
 		    !kallsyms_lookup_size_offset(entry, &size, &offset)) {
@@ -180,6 +181,8 @@ static const char *error_type_string(int etype)
 		return "ERRNO";
 	case EI_ETYPE_ERRNO_NULL:
 		return "ERRNO_NULL";
+	case EI_ETYPE_TRUE:
+		return "TRUE";
 	default:
 		return "(unknown)";
 	}
@@ -189,7 +192,7 @@ static int ei_seq_show(struct seq_file *m, void *v)
 {
 	struct ei_entry *ent = list_entry(v, struct ei_entry, list);
 
-	seq_printf(m, "%pf\t%s\n", (void *)ent->start_addr,
+	seq_printf(m, "%ps\t%s\n", (void *)ent->start_addr,
 		   error_type_string(ent->etype));
 	return 0;
 }

@@ -183,8 +183,7 @@ static void bcm_kp_stop(const struct bcm_kp *kp)
 	writel(0xFFFFFFFF, kp->base + KPICR0_OFFSET);
 	writel(0xFFFFFFFF, kp->base + KPICR1_OFFSET);
 
-	if (kp->clk)
-		clk_disable_unprepare(kp->clk);
+	clk_disable_unprepare(kp->clk);
 }
 
 static int bcm_kp_open(struct input_dev *dev)
@@ -413,10 +412,8 @@ static int bcm_kp_probe(struct platform_device *pdev)
 	bcm_kp_stop(kp);
 
 	kp->irq = platform_get_irq(pdev, 0);
-	if (kp->irq < 0) {
-		dev_err(&pdev->dev, "no IRQ specified\n");
+	if (kp->irq < 0)
 		return -EINVAL;
-	}
 
 	error = devm_request_threaded_irq(&pdev->dev, kp->irq,
 					  NULL, bcm_kp_isr_thread,

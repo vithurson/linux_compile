@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
 /*******************************************************************************
  * This file contains the main functions related to Initiator Node Attributes.
  *
@@ -5,15 +6,6 @@
  *
  * Author: Nicholas A. Bellinger <nab@linux-iscsi.org>
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
  ******************************************************************************/
 
 #include <target/target_core_base.h>
@@ -104,8 +96,8 @@ int iscsit_na_nopin_timeout(
 	u32 nopin_timeout)
 {
 	struct iscsi_node_attrib *a = &acl->node_attrib;
-	struct iscsi_session *sess;
-	struct iscsi_conn *conn;
+	struct iscsit_session *sess;
+	struct iscsit_conn *conn;
 	struct se_node_acl *se_nacl = &a->nacl->se_node_acl;
 	struct se_session *se_sess;
 	u32 orig_nopin_timeout = a->nopin_timeout;

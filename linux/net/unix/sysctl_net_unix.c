@@ -1,12 +1,8 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
 /*
  * NET4:	Sysctl interface to net af_unix subsystem.
  *
  * Authors:	Mike Shaver.
- *
- *		This program is free software; you can redistribute it and/or
- *		modify it under the terms of the GNU General Public License
- *		as published by the Free Software Foundation; either version
- *		2 of the License, or (at your option) any later version.
  */
 
 #include <linux/mm.h>
@@ -33,10 +29,6 @@ int __net_init unix_sysctl_register(struct net *net)
 	table = kmemdup(unix_table, sizeof(unix_table), GFP_KERNEL);
 	if (table == NULL)
 		goto err_alloc;
-
-	/* Don't export sysctls to unprivileged users */
-	if (net->user_ns != &init_user_ns)
-		table[0].procname = NULL;
 
 	table[0].data = &net->unx.sysctl_max_dgram_qlen;
 	net->unx.ctl = register_net_sysctl(net, "net/unix", table);

@@ -514,7 +514,8 @@ int main(int argc, char** argv){
 #endif
                             else {
                                 cout << "New peripheral"<< hex << load_addr_phy<<endl;
-                                exit(0);
+                                load_data=0;
+                                //exit(0);
                             }
                         }
 
@@ -725,6 +726,7 @@ int main(int argc, char** argv){
                             clint_write(store_addr_phy-CLINT_BASE, reg_file[rs2]);
                         }
                         else if ((store_addr_phy >= PLIC_BASE) & (store_addr_phy <= (PLIC_BASE+PLIC_SIZE))){
+                                 //   printf("addr %0x, data %0x\n",store_addr_phy,reg_file[rs2]);
                             plic_write(store_addr_phy-PLIC_BASE, reg_file[rs2]);
                         }
 #ifdef TEMU
@@ -734,7 +736,7 @@ int main(int argc, char** argv){
 #endif
                         else {
                             cout << "New peripheral"<< hex << load_addr_phy<<endl;
-                            exit(0);
+                            //exit(0);
                         }
                     }
 
@@ -1691,10 +1693,11 @@ int main(int argc, char** argv){
         //external interupts >> software interupts >> timer interupts >> synchornous traps
       
         if(LD_ACC_FAULT) {
-            cout << "This should not occur"<<endl;
+            cout << "load access fault!!"<<endl;
             LD_ACC_FAULT = false;
             PC = excep_function(PC,CAUSE_LOAD_ACCESS,CAUSE_LOAD_ACCESS,CAUSE_LOAD_ACCESS,cp);
             write_tval = false;
+            
         }
        
      
@@ -1736,6 +1739,7 @@ int main(int argc, char** argv){
             INS_ACC_FAULT = false;
             PC = excep_function(PC,CAUSE_FETCH_ACCESS,CAUSE_FETCH_ACCESS,CAUSE_FETCH_ACCESS,cp);
             write_tval = false;
+
         }
         
         else if (ILL_INS) {
@@ -1754,9 +1758,12 @@ int main(int argc, char** argv){
             write_tval = true;
         }
         else if (LD_ADDR_MISSALIG) {
+            printf("load missalgined %0x %0x %0d %0x\n",load_addr,load_addr_phy,func3,lPC);
+            //exit(1);
             LD_ADDR_MISSALIG = false;
             PC = excep_function(PC,CAUSE_MISALIGNED_LOAD,CAUSE_MISALIGNED_LOAD,CAUSE_MISALIGNED_LOAD,cp);
             write_tval = true;
+
         }
         else if(STORE_ADDR_MISSALIG) {
             STORE_ADDR_MISSALIG = false;

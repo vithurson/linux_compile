@@ -32,7 +32,7 @@ m4_define( proj_abbreviation, [riscv-pk])
 # distribution knows what version it came from. If you are not using
 # version control then it is fine to set this directly.
 
-m4_define( proj_version, [?])
+m4_define( proj_version, [1.0.0])
 
 #-------------------------------------------------------------------------
 # Setup
@@ -83,8 +83,11 @@ AC_ARG_VAR(RISCV, [top-level RISC-V install directory])
 AC_ARG_WITH([arch], AS_HELP_STRING([--with-arch], [Set the RISC-V architecture]),
   [AC_SUBST([WITH_ARCH], $with_arch, [Specify architecture to build the project])])
 
+AC_ARG_WITH([abi], AS_HELP_STRING([--with-abi], [Set the RISC-V ABI]),
+  [AC_SUBST([WITH_ABI], $with_abi, [Specify ABI to build the project])])
+
 AC_ARG_ENABLE([print-device-tree], AS_HELP_STRING([--enable-print-device-tree], [Print DTS when booting]))
-AS_IF([test "x$enable_print_device_tree" == "xyes"], [
+AS_IF([test "x$enable_print_device_tree" = "xyes"], [
   AC_DEFINE([PK_PRINT_DEVICE_TREE],,[Define if the DTS is to be displayed])
 ])
 
@@ -93,9 +96,22 @@ LDFLAGS="$LDFLAGS -Wl,--build-id=none"
 
 AC_SUBST(CFLAGS)
 AC_SUBST(LDFLAGS)
-AC_SUBST([LIBS], ["-lgcc"])
+AC_CHECK_LIB([gcc], [__ashldi3], AC_SUBST([LIBS], ["-lgcc"]), AC_SUBST([LIBS]))
+AC_CHECK_LIB([gcc], [__ashlti3], AC_SUBST([LIBS], ["-lgcc"]), AC_SUBST([LIBS]))
 AC_SUBST(WITH_ARCH)
 AC_SUBST(host_alias)
+
+AC_ARG_WITH([mem-start], AS_HELP_STRING([--with-mem-start], [Set physical memory start address]),
+  [
+   AC_SUBST([MEM_START], $with_mem_start, [Physical memory start address])
+  ], [
+   AC_SUBST([MEM_START], [0x80000000], [Physical memory start address])
+  ])
+
+AC_ARG_ENABLE([zero-bss], AS_HELP_STRING([--enable-zero-bss], [Manually zero out BSS when booting]))
+AS_IF([test "x$enable_zero_bss" = "xyes"], [
+  AC_DEFINE([ZERO_BSS],,[Define if BSS should be manually zeroed when booting])
+])
 
 #-------------------------------------------------------------------------
 # MCPPBS subproject list

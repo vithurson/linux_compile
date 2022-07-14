@@ -1,4 +1,5 @@
 /* SPDX-License-Identifier: GPL-2.0 */
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -10,6 +11,7 @@
 #include <unistd.h>
 #include <elf.h>
 
+#include "list.h"
 #include "elfconfig.h"
 
 /* On BSD-alike OSes elf.h defines these according to host's word size */
@@ -95,6 +97,9 @@ static inline void __endian(const void *src, void *dest, unsigned int size)
 #endif
 
 #define NOFAIL(ptr)   do_nofail((ptr), #ptr)
+
+#define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
+
 void *do_nofail(void *ptr, const char *expr);
 
 struct buffer {
@@ -110,30 +115,30 @@ void
 buf_write(struct buffer *buf, const char *s, int len);
 
 struct module {
-	struct module *next;
-	const char *name;
-	int gpl_compatible;
-	struct symbol *unres;
-	int seen;
-	int skip;
-	int has_init;
-	int has_cleanup;
+	struct list_head list;
+	struct list_head exported_symbols;
+	struct list_head unresolved_symbols;
+	bool is_gpl_compatible;
+	bool from_dump;		/* true if module was loaded from *.symvers */
+	bool is_vmlinux;
+	bool seen;
+	bool has_init;
+	bool has_cleanup;
 	struct buffer dev_table_buf;
 	char	     srcversion[25];
-	int is_dot_o;
+	// Missing namespace dependencies
+	struct list_head missing_namespaces;
+	// Actual imported namespaces
+	struct list_head imported_namespaces;
+	char name[];
 };
 
 struct elf_info {
-	unsigned long size;
+	size_t size;
 	Elf_Ehdr     *hdr;
 	Elf_Shdr     *sechdrs;
 	Elf_Sym      *symtab_start;
 	Elf_Sym      *symtab_stop;
-	Elf_Section  export_sec;
-	Elf_Section  export_unused_sec;
-	Elf_Section  export_gpl_sec;
-	Elf_Section  export_unused_gpl_sec;
-	Elf_Section  export_gpl_future_sec;
 	char         *strtab;
 	char	     *modinfo;
 	unsigned int modinfo_len;
@@ -172,23 +177,38 @@ static inline unsigned int get_secindex(const struct elf_info *info,
 }
 
 /* file2alias.c */
-extern unsigned int cross_build;
 void handle_moddevtable(struct module *mod, struct elf_info *info,
 			Elf_Sym *sym, const char *symname);
 void add_moddevtable(struct buffer *buf, struct module *mod);
 
 /* sumversion.c */
-void maybe_frob_rcs_version(const char *modfilename,
-			    char *version,
-			    void *modinfo,
-			    unsigned long modinfo_offset);
 void get_src_version(const char *modname, char sum[], unsigned sumlen);
 
 /* from modpost.c */
-void *grab_file(const char *filename, unsigned long *size);
-char* get_next_line(unsigned long *pos, void *file, unsigned long size);
-void release_file(void *file, unsigned long size);
+char *read_text_file(const char *filename);
+char *get_line(char **stringp);
 
-void fatal(const char *fmt, ...);
-void warn(const char *fmt, ...);
-void merror(const char *fmt, ...);
+enum loglevel {
+	LOG_WARN,
+	LOG_ERROR,
+	LOG_FATAL
+};
+
+void modpost_log(enum loglevel loglevel, const char *fmt, ...);
+
+/*
+ * warn - show the given message, then let modpost continue running, still
+ *        allowing modpost to exit successfully. This should be used when
+ *        we still allow to generate vmlinux and modules.
+ *
+ * error - show the given message, then let modpost continue running, but fail
+ *         in the end. This should be used when we should stop building vmlinux
+ *         or modules, but we can continue running modpost to catch as many
+ *         issues as possible.
+ *
+ * fatal - show the given message, and bail out immediately. This should be
+ *         used when there is no point to continue running modpost.
+ */
+#define warn(fmt, args...)	modpost_log(LOG_WARN, fmt, ##args)
+#define error(fmt, args...)	modpost_log(LOG_ERROR, fmt, ##args)
+#define fatal(fmt, args...)	modpost_log(LOG_FATAL, fmt, ##args)

@@ -19,9 +19,6 @@
 #include <linux/of_irq.h>
 #include <linux/of_platform.h>
 
-#include <asm/prom.h>
-
-
 static int
 ohci_ppc_of_start(struct usb_hcd *hcd)
 {
@@ -50,7 +47,7 @@ static const struct hc_driver ohci_ppc_of_hc_driver = {
 	 * generic hardware linkage
 	 */
 	.irq =			ohci_irq,
-	.flags =		HCD_USB11 | HCD_MEMORY,
+	.flags =		HCD_USB11 | HCD_DMA | HCD_MEMORY,
 
 	/*
 	 * basic lifecycle operations

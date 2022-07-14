@@ -25,13 +25,6 @@ static void handle_store_access_fault(trapframe_t *tf)
 
 static void handle_illegal_instruction(trapframe_t* tf)
 {
-  tf->insn = *(uint16_t*)tf->epc;
-  int len = insn_len(tf->insn);
-  if (len == 4)
-    tf->insn |= ((uint32_t)*(uint16_t*)(tf->epc + 2) << 16);
-  else
-    kassert(len == 2);
-
   dump_tf(tf);
   panic("An illegal instruction was executed!");
 }
@@ -39,8 +32,7 @@ static void handle_illegal_instruction(trapframe_t* tf)
 static void handle_breakpoint(trapframe_t* tf)
 {
   dump_tf(tf);
-  printk("Breakpoint!\n");
-  tf->epc += 4;
+  panic("Breakpoint!");
 }
 
 static void handle_misaligned_fetch(trapframe_t* tf)
@@ -122,5 +114,7 @@ void handle_trap(trapframe_t* tf)
 
   kassert(tf->cause < ARRAY_SIZE(trap_handlers) && trap_handlers[tf->cause]);
 
-  trap_handlers[tf->cause](tf);
+  trap_handler f = (void*)pa2kva(trap_handlers[tf->cause]);
+
+  f(tf);
 }

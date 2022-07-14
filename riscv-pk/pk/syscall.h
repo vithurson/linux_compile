@@ -7,6 +7,7 @@
 #define SYS_exit_group 94
 #define SYS_getpid 172
 #define SYS_kill 129
+#define SYS_tgkill 131
 #define SYS_read 63
 #define SYS_write 64
 #define SYS_openat 56
@@ -29,6 +30,8 @@
 #define SYS_geteuid 175
 #define SYS_getgid 176
 #define SYS_getegid 177
+#define SYS_gettid 178
+#define SYS_sysinfo 179
 #define SYS_mmap 222
 #define SYS_munmap 215
 #define SYS_mremap 216
@@ -43,6 +46,7 @@
 #define SYS_ftruncate 46
 #define SYS_getdents 61
 #define SYS_dup 23
+#define SYS_dup3 24
 #define SYS_readlinkat 78
 #define SYS_rt_sigprocmask 135
 #define SYS_ioctl 29
@@ -53,6 +57,7 @@
 #define SYS_set_tid_address 96
 #define SYS_set_robust_list 99
 #define SYS_madvise 233
+#define SYS_statx 291
 
 #define OLD_SYSCALL_THRESHOLD 1024
 #define SYS_open 1024
@@ -68,6 +73,7 @@
 #define ERR_PTR(x) ((void*)(long)(x))
 #define PTR_ERR(x) ((long)(x))
 
+#undef AT_FDCWD
 #define AT_FDCWD -100
 
 long do_syscall(long a0, long a1, long a2, long a3, long a4, long a5, unsigned long n);

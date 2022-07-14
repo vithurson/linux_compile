@@ -1,12 +1,8 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
 /*
  * drivers/net/bond/bond_netlink.c - Netlink interface for bonding
  * Copyright (c) 2013 Jiri Pirko <jiri@resnulli.us>
  * Copyright (c) 2013 Scott Feldman <sfeldma@cumulusnetworks.com>
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
  */
 
 #include <linux/module.h>
@@ -18,6 +14,7 @@
 #include <net/netlink.h>
 #include <net/rtnetlink.h>
 #include <net/bonding.h>
+#include <net/ipv6.h>
 
 static size_t bond_get_slave_size(const struct net_device *bond_dev,
 				  const struct net_device *slave_dev)
@@ -104,6 +101,7 @@ static const struct nla_policy bond_policy[IFLA_BOND_MAX + 1] = {
 	[IFLA_BOND_MIN_LINKS]		= { .type = NLA_U32 },
 	[IFLA_BOND_LP_INTERVAL]		= { .type = NLA_U32 },
 	[IFLA_BOND_PACKETS_PER_SLAVE]	= { .type = NLA_U32 },
+	[IFLA_BOND_AD_LACP_ACTIVE]	= { .type = NLA_U8 },
 	[IFLA_BOND_AD_LACP_RATE]	= { .type = NLA_U8 },
 	[IFLA_BOND_AD_SELECT]		= { .type = NLA_U8 },
 	[IFLA_BOND_AD_INFO]		= { .type = NLA_NESTED },
@@ -112,6 +110,9 @@ static const struct nla_policy bond_policy[IFLA_BOND_MAX + 1] = {
 	[IFLA_BOND_AD_ACTOR_SYSTEM]	= { .type = NLA_BINARY,
 					    .len  = ETH_ALEN },
 	[IFLA_BOND_TLB_DYNAMIC_LB]	= { .type = NLA_U8 },
+	[IFLA_BOND_PEER_NOTIF_DELAY]    = { .type = NLA_U32 },
+	[IFLA_BOND_MISSED_MAX]		= { .type = NLA_U8 },
+	[IFLA_BOND_NS_IP6_TARGET]	= { .type = NLA_NESTED },
 };
 
 static const struct nla_policy bond_slave_policy[IFLA_BOND_SLAVE_MAX + 1] = {
@@ -219,6 +220,14 @@ static int bond_changelink(struct net_device *bond_dev, struct nlattr *tb[],
 		if (err)
 			return err;
 	}
+	if (data[IFLA_BOND_PEER_NOTIF_DELAY]) {
+		int delay = nla_get_u32(data[IFLA_BOND_PEER_NOTIF_DELAY]);
+
+		bond_opt_initval(&newval, delay);
+		err = __bond_opt_set(bond, BOND_OPT_PEER_NOTIF_DELAY, &newval);
+		if (err)
+			return err;
+	}
 	if (data[IFLA_BOND_USE_CARRIER]) {
 		int use_carrier = nla_get_u8(data[IFLA_BOND_USE_CARRIER]);
 
@@ -265,6 +274,35 @@ static int bond_changelink(struct net_device *bond_dev, struct nlattr *tb[],
 		if (err)
 			return err;
 	}
+#if IS_ENABLED(CONFIG_IPV6)
+	if (data[IFLA_BOND_NS_IP6_TARGET]) {
+		struct nlattr *attr;
+		int i = 0, rem;
+
+		bond_option_ns_ip6_targets_clear(bond);
+		nla_for_each_nested(attr, data[IFLA_BOND_NS_IP6_TARGET], rem) {
+			struct in6_addr addr6;
+
+			if (nla_len(attr) < sizeof(addr6)) {
+				NL_SET_ERR_MSG(extack, "Invalid IPv6 address");
+				return -EINVAL;
+			}
+
+			addr6 = nla_get_in6_addr(attr);
+
+			bond_opt_initextra(&newval, &addr6, sizeof(addr6));
+			err = __bond_opt_set(bond, BOND_OPT_NS_TARGETS,
+					     &newval);
+			if (err)
+				break;
+			i++;
+		}
+		if (i == 0 && bond->params.arp_interval)
+			netdev_warn(bond->dev, "Removing last ns target with arp_interval on\n");
+		if (err)
+			return err;
+	}
+#endif
 	if (data[IFLA_BOND_ARP_VALIDATE]) {
 		int arp_validate = nla_get_u32(data[IFLA_BOND_ARP_VALIDATE]);
 
@@ -382,6 +420,16 @@ static int bond_changelink(struct net_device *bond_dev, struct nlattr *tb[],
 		if (err)
 			return err;
 	}
+
+	if (data[IFLA_BOND_AD_LACP_ACTIVE]) {
+		int lacp_active = nla_get_u8(data[IFLA_BOND_AD_LACP_ACTIVE]);
+
+		bond_opt_initval(&newval, lacp_active);
+		err = __bond_opt_set(bond, BOND_OPT_LACP_ACTIVE, &newval);
+		if (err)
+			return err;
+	}
+
 	if (data[IFLA_BOND_AD_LACP_RATE]) {
 		int lacp_rate =
 			nla_get_u8(data[IFLA_BOND_AD_LACP_RATE]);
@@ -437,6 +485,15 @@ static int bond_changelink(struct net_device *bond_dev, struct nlattr *tb[],
 			return err;
 	}
 
+	if (data[IFLA_BOND_MISSED_MAX]) {
+		int missed_max = nla_get_u8(data[IFLA_BOND_MISSED_MAX]);
+
+		bond_opt_initval(&newval, missed_max);
+		err = __bond_opt_set(bond, BOND_OPT_MISSED_MAX, &newval);
+		if (err)
+			return err;
+	}
+
 	return 0;
 }
 
@@ -451,11 +508,10 @@ static int bond_newlink(struct net *src_net, struct net_device *bond_dev,
 		return err;
 
 	err = register_netdevice(bond_dev);
-
-	netif_carrier_off(bond_dev);
 	if (!err) {
 		struct bonding *bond = netdev_priv(bond_dev);
 
+		netif_carrier_off(bond_dev);
 		bond_work_init_all(bond);
 	}
 
@@ -486,6 +542,7 @@ static size_t bond_get_size(const struct net_device *bond_dev)
 		nla_total_size(sizeof(u32)) +	/* IFLA_BOND_MIN_LINKS */
 		nla_total_size(sizeof(u32)) +	/* IFLA_BOND_LP_INTERVAL */
 		nla_total_size(sizeof(u32)) +  /* IFLA_BOND_PACKETS_PER_SLAVE */
+		nla_total_size(sizeof(u8)) +	/* IFLA_BOND_AD_LACP_ACTIVE */
 		nla_total_size(sizeof(u8)) +	/* IFLA_BOND_AD_LACP_RATE */
 		nla_total_size(sizeof(u8)) +	/* IFLA_BOND_AD_SELECT */
 		nla_total_size(sizeof(struct nlattr)) + /* IFLA_BOND_AD_INFO */
@@ -498,6 +555,11 @@ static size_t bond_get_size(const struct net_device *bond_dev)
 		nla_total_size(sizeof(u16)) + /* IFLA_BOND_AD_USER_PORT_KEY */
 		nla_total_size(ETH_ALEN) + /* IFLA_BOND_AD_ACTOR_SYSTEM */
 		nla_total_size(sizeof(u8)) + /* IFLA_BOND_TLB_DYNAMIC_LB */
+		nla_total_size(sizeof(u32)) +	/* IFLA_BOND_PEER_NOTIF_DELAY */
+		nla_total_size(sizeof(u8)) +	/* IFLA_BOND_MISSED_MAX */
+						/* IFLA_BOND_NS_IP6_TARGET */
+		nla_total_size(sizeof(struct nlattr)) +
+		nla_total_size(sizeof(struct in6_addr)) * BOND_MAX_NS_TARGETS +
 		0;
 }
 
@@ -540,13 +602,17 @@ static int bond_fill_info(struct sk_buff *skb,
 			bond->params.downdelay * bond->params.miimon))
 		goto nla_put_failure;
 
+	if (nla_put_u32(skb, IFLA_BOND_PEER_NOTIF_DELAY,
+			bond->params.peer_notif_delay * bond->params.miimon))
+		goto nla_put_failure;
+
 	if (nla_put_u8(skb, IFLA_BOND_USE_CARRIER, bond->params.use_carrier))
 		goto nla_put_failure;
 
 	if (nla_put_u32(skb, IFLA_BOND_ARP_INTERVAL, bond->params.arp_interval))
 		goto nla_put_failure;
 
-	targets = nla_nest_start(skb, IFLA_BOND_ARP_IP_TARGET);
+	targets = nla_nest_start_noflag(skb, IFLA_BOND_ARP_IP_TARGET);
 	if (!targets)
 		goto nla_put_failure;
 
@@ -571,6 +637,26 @@ static int bond_fill_info(struct sk_buff *skb,
 			bond->params.arp_all_targets))
 		goto nla_put_failure;
 
+#if IS_ENABLED(CONFIG_IPV6)
+	targets = nla_nest_start(skb, IFLA_BOND_NS_IP6_TARGET);
+	if (!targets)
+		goto nla_put_failure;
+
+	targets_added = 0;
+	for (i = 0; i < BOND_MAX_NS_TARGETS; i++) {
+		if (!ipv6_addr_any(&bond->params.ns_targets[i])) {
+			if (nla_put_in6_addr(skb, i, &bond->params.ns_targets[i]))
+				goto nla_put_failure;
+			targets_added = 1;
+		}
+	}
+
+	if (targets_added)
+		nla_nest_end(skb, targets);
+	else
+		nla_nest_cancel(skb, targets);
+#endif
+
 	primary = rtnl_dereference(bond->primary_slave);
 	if (primary &&
 	    nla_put_u32(skb, IFLA_BOND_PRIMARY, primary->dev->ifindex))
@@ -589,7 +675,7 @@ static int bond_fill_info(struct sk_buff *skb,
 		goto nla_put_failure;
 
 	if (nla_put_u32(skb, IFLA_BOND_RESEND_IGMP,
-		        bond->params.resend_igmp))
+			bond->params.resend_igmp))
 		goto nla_put_failure;
 
 	if (nla_put_u8(skb, IFLA_BOND_NUM_PEER_NOTIF,
@@ -613,6 +699,10 @@ static int bond_fill_info(struct sk_buff *skb,
 			packets_per_slave))
 		goto nla_put_failure;
 
+	if (nla_put_u8(skb, IFLA_BOND_AD_LACP_ACTIVE,
+		       bond->params.lacp_active))
+		goto nla_put_failure;
+
 	if (nla_put_u8(skb, IFLA_BOND_AD_LACP_RATE,
 		       bond->params.lacp_fast))
 		goto nla_put_failure;
@@ -623,6 +713,10 @@ static int bond_fill_info(struct sk_buff *skb,
 
 	if (nla_put_u8(skb, IFLA_BOND_TLB_DYNAMIC_LB,
 		       bond->params.tlb_dynamic_lb))
+		goto nla_put_failure;
+
+	if (nla_put_u8(skb, IFLA_BOND_MISSED_MAX,
+		       bond->params.missed_max))
 		goto nla_put_failure;
 
 	if (BOND_MODE(bond) == BOND_MODE_8023AD) {
@@ -644,7 +738,7 @@ static int bond_fill_info(struct sk_buff *skb,
 		if (!bond_3ad_get_active_agg_info(bond, &info)) {
 			struct nlattr *nest;
 
-			nest = nla_nest_start(skb, IFLA_BOND_AD_INFO);
+			nest = nla_nest_start_noflag(skb, IFLA_BOND_AD_INFO);
 			if (!nest)
 				goto nla_put_failure;
 
@@ -675,6 +769,71 @@ nla_put_failure:
 	return -EMSGSIZE;
 }
 
+static size_t bond_get_linkxstats_size(const struct net_device *dev, int attr)
+{
+	switch (attr) {
+	case IFLA_STATS_LINK_XSTATS:
+	case IFLA_STATS_LINK_XSTATS_SLAVE:
+		break;
+	default:
+		return 0;
+	}
+
+	return bond_3ad_stats_size() + nla_total_size(0);
+}
+
+static int bond_fill_linkxstats(struct sk_buff *skb,
+				const struct net_device *dev,
+				int *prividx, int attr)
+{
+	struct nlattr *nla __maybe_unused;
+	struct slave *slave = NULL;
+	struct nlattr *nest, *nest2;
+	struct bonding *bond;
+
+	switch (attr) {
+	case IFLA_STATS_LINK_XSTATS:
+		bond = netdev_priv(dev);
+		break;
+	case IFLA_STATS_LINK_XSTATS_SLAVE:
+		slave = bond_slave_get_rtnl(dev);
+		if (!slave)
+			return 0;
+		bond = slave->bond;
+		break;
+	default:
+		return -EINVAL;
+	}
+
+	nest = nla_nest_start_noflag(skb, LINK_XSTATS_TYPE_BOND);
+	if (!nest)
+		return -EMSGSIZE;
+	if (BOND_MODE(bond) == BOND_MODE_8023AD) {
+		struct bond_3ad_stats *stats;
+
+		if (slave)
+			stats = &SLAVE_AD_INFO(slave)->stats;
+		else
+			stats = &BOND_AD_INFO(bond).stats;
+
+		nest2 = nla_nest_start_noflag(skb, BOND_XSTATS_3AD);
+		if (!nest2) {
+			nla_nest_end(skb, nest);
+			return -EMSGSIZE;
+		}
+
+		if (bond_3ad_stats_fill(skb, stats)) {
+			nla_nest_cancel(skb, nest2);
+			nla_nest_end(skb, nest);
+			return -EMSGSIZE;
+		}
+		nla_nest_end(skb, nest2);
+	}
+	nla_nest_end(skb, nest);
+
+	return 0;
+}
+
 struct rtnl_link_ops bond_link_ops __read_mostly = {
 	.kind			= "bond",
 	.priv_size		= sizeof(struct bonding),
@@ -689,6 +848,8 @@ struct rtnl_link_ops bond_link_ops __read_mostly = {
 	.get_num_tx_queues	= bond_get_num_tx_queues,
 	.get_num_rx_queues	= bond_get_num_tx_queues, /* Use the same number
 							     as for TX queues */
+	.fill_linkxstats        = bond_fill_linkxstats,
+	.get_linkxstats_size    = bond_get_linkxstats_size,
 	.slave_maxtype		= IFLA_BOND_SLAVE_MAX,
 	.slave_policy		= bond_slave_policy,
 	.slave_changelink	= bond_slave_changelink,

@@ -13,32 +13,32 @@ kill the processes associated with it and avoid using it in the future.
 
 This patchkit implements the necessary infrastructure in the VM.
 
-To quote the overview comment:
+To quote the overview comment::
 
- * High level machine check handler. Handles pages reported by the
- * hardware as being corrupted usually due to a 2bit ECC memory or cache
- * failure.
- *
- * This focusses on pages detected as corrupted in the background.
- * When the current CPU tries to consume corruption the currently
- * running process can just be killed directly instead. This implies
- * that if the error cannot be handled for some reason it's safe to
- * just ignore it because no corruption has been consumed yet. Instead
- * when that happens another machine check will happen.
- *
- * Handles page cache pages in various states. The tricky part
- * here is that we can access any page asynchronous to other VM
- * users, because memory failures could happen anytime and anywhere,
- * possibly violating some of their assumptions. This is why this code
- * has to be extremely careful. Generally it tries to use normal locking
- * rules, as in get the standard locks, even if that means the
- * error handling takes potentially a long time.
- *
- * Some of the operations here are somewhat inefficient and have non
- * linear algorithmic complexity, because the data structures have not
- * been optimized for this case. This is in particular the case
- * for the mapping from a vma to a process. Since this case is expected
- * to be rare we hope we can get away with this.
+	High level machine check handler. Handles pages reported by the
+	hardware as being corrupted usually due to a 2bit ECC memory or cache
+	failure.
+
+	This focusses on pages detected as corrupted in the background.
+	When the current CPU tries to consume corruption the currently
+	running process can just be killed directly instead. This implies
+	that if the error cannot be handled for some reason it's safe to
+	just ignore it because no corruption has been consumed yet. Instead
+	when that happens another machine check will happen.
+
+	Handles page cache pages in various states. The tricky part
+	here is that we can access any page asynchronous to other VM
+	users, because memory failures could happen anytime and anywhere,
+	possibly violating some of their assumptions. This is why this code
+	has to be extremely careful. Generally it tries to use normal locking
+	rules, as in get the standard locks, even if that means the
+	error handling takes potentially a long time.
+
+	Some of the operations here are somewhat inefficient and have non
+	linear algorithmic complexity, because the data structures have not
+	been optimized for this case. This is in particular the case
+	for the mapping from a vma to a process. Since this case is expected
+	to be rare we hope we can get away with this.
 
 The code consists of a the high level handler in mm/memory-failure.c,
 a new page poison bit and various checks in the VM to handle poisoned
@@ -60,8 +60,6 @@ There are two (actually three) modes memory failure recovery can be in:
 
 vm.memory_failure_recovery sysctl set to zero:
 	All memory failures cause a panic. Do not attempt recovery.
-	(on x86 this can be also affected by the tolerant level of the
-	MCE subsystem)
 
 early kill
 	(can be controlled globally and per process)
@@ -122,7 +120,8 @@ Testing
   unpoison-pfn
 	Software-unpoison page at PFN echoed into this file. This way
 	a page can be reused again.  This only works for Linux
-	injected failures, not for real memory failures.
+	injected failures, not for real memory failures. Once any hardware
+	memory failure happens, this feature is disabled.
 
   Note these injection interfaces are not stable and might change between
   kernel versions
@@ -180,7 +179,6 @@ Limitations
 ===========
 - Not all page types are supported and never will. Most kernel internal
   objects cannot be recovered, only LRU pages for now.
-- Right now hugepage support is missing.
 
 ---
 Andi Kleen, Oct 2009

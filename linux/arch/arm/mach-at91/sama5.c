@@ -1,10 +1,9 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
 /*
  *  Setup code for SAMA5
  *
  *  Copyright (C) 2013 Atmel,
  *                2013 Ludovic Desroches <ludovic.desroches@atmel.com>
- *
- * Licensed under GPLv2 or later.
  */
 
 #include <linux/of.h>
@@ -15,6 +14,7 @@
 #include <asm/system_misc.h>
 
 #include "generic.h"
+#include "sam_secure.h"
 
 static void __init sama5_dt_device_init(void)
 {
@@ -48,6 +48,7 @@ MACHINE_END
 static void __init sama5d2_init(void)
 {
 	of_platform_default_populate(NULL, NULL, NULL);
+	sam_secure_init();
 	sama5d2_pm_init();
 }
 

@@ -3,8 +3,6 @@
  * Copyright (c) 1996, 2003 VIA Networking Technologies, Inc.
  * All rights reserved.
  *
- * File: mac.c
- *
  * Purpose:  MAC routines
  *
  * Author: Tevin Chen
@@ -12,7 +10,6 @@
  * Date: May 21, 1996
  *
  * Functions:
- *      MACbIsRegBitsOn - Test if All test Bits On
  *      MACbIsRegBitsOff - Test if All test Bits Off
  *      MACbIsIntDisable - Test if MAC interrupt disable
  *      MACvSetShortRetryLimit - Set 802.11 Short Retry limit
@@ -39,31 +36,7 @@
  *
  */
 
-#include "tmacro.h"
 #include "mac.h"
-
-/*
- * Description:
- *      Test if all test bits on
- *
- * Parameters:
- *  In:
- *      io_base    - Base Address for MAC
- *      byRegOfs    - Offset of MAC Register
- *      byTestBits  - Test bits
- *  Out:
- *      none
- *
- * Return Value: true if all test bits On; otherwise false
- *
- */
-bool MACbIsRegBitsOn(struct vnt_private *priv, unsigned char byRegOfs,
-		     unsigned char byTestBits)
-{
-	void __iomem *io_base = priv->PortOffset;
-
-	return (ioread8(io_base + byRegOfs) & byTestBits) == byTestBits;
-}
 
 /*
  * Description:
@@ -83,7 +56,7 @@ bool MACbIsRegBitsOn(struct vnt_private *priv, unsigned char byRegOfs,
 bool MACbIsRegBitsOff(struct vnt_private *priv, unsigned char byRegOfs,
 		      unsigned char byTestBits)
 {
-	void __iomem *io_base = priv->PortOffset;
+	void __iomem *io_base = priv->port_offset;
 
 	return !(ioread8(io_base + byRegOfs) & byTestBits);
 }
@@ -103,7 +76,7 @@ bool MACbIsRegBitsOff(struct vnt_private *priv, unsigned char byRegOfs,
  */
 bool MACbIsIntDisable(struct vnt_private *priv)
 {
-	void __iomem *io_base = priv->PortOffset;
+	void __iomem *io_base = priv->port_offset;
 
 	if (ioread32(io_base + MAC_REG_IMR))
 		return false;
@@ -128,7 +101,7 @@ bool MACbIsIntDisable(struct vnt_private *priv)
 void MACvSetShortRetryLimit(struct vnt_private *priv,
 			    unsigned char byRetryLimit)
 {
-	void __iomem *io_base = priv->PortOffset;
+	void __iomem *io_base = priv->port_offset;
 	/* set SRT */
 	iowrite8(byRetryLimit, io_base + MAC_REG_SRT);
 }
@@ -150,7 +123,7 @@ void MACvSetShortRetryLimit(struct vnt_private *priv,
 void MACvSetLongRetryLimit(struct vnt_private *priv,
 			   unsigned char byRetryLimit)
 {
-	void __iomem *io_base = priv->PortOffset;
+	void __iomem *io_base = priv->port_offset;
 	/* set LRT */
 	iowrite8(byRetryLimit, io_base + MAC_REG_LRT);
 }
@@ -171,7 +144,7 @@ void MACvSetLongRetryLimit(struct vnt_private *priv,
  */
 void MACvSetLoopbackMode(struct vnt_private *priv, unsigned char byLoopbackMode)
 {
-	void __iomem *io_base = priv->PortOffset;
+	void __iomem *io_base = priv->port_offset;
 
 	byLoopbackMode <<= 6;
 	/* set TCR */
@@ -194,7 +167,7 @@ void MACvSetLoopbackMode(struct vnt_private *priv, unsigned char byLoopbackMode)
  */
 void MACvSaveContext(struct vnt_private *priv, unsigned char *cxt_buf)
 {
-	void __iomem *io_base = priv->PortOffset;
+	void __iomem *io_base = priv->port_offset;
 
 	/* read page0 register */
 	memcpy_fromio(cxt_buf, io_base, MAC_MAX_CONTEXT_SIZE_PAGE0);
@@ -224,7 +197,7 @@ void MACvSaveContext(struct vnt_private *priv, unsigned char *cxt_buf)
  */
 void MACvRestoreContext(struct vnt_private *priv, unsigned char *cxt_buf)
 {
-	void __iomem *io_base = priv->PortOffset;
+	void __iomem *io_base = priv->port_offset;
 
 	MACvSelectPage1(io_base);
 	/* restore page1 */
@@ -275,7 +248,7 @@ void MACvRestoreContext(struct vnt_private *priv, unsigned char *cxt_buf)
  */
 bool MACbSoftwareReset(struct vnt_private *priv)
 {
-	void __iomem *io_base = priv->PortOffset;
+	void __iomem *io_base = priv->port_offset;
 	unsigned short ww;
 
 	/* turn on HOSTCR_SOFTRST, just write 0x01 to reset */
@@ -338,7 +311,7 @@ bool MACbSafeSoftwareReset(struct vnt_private *priv)
  */
 bool MACbSafeRxOff(struct vnt_private *priv)
 {
-	void __iomem *io_base = priv->PortOffset;
+	void __iomem *io_base = priv->port_offset;
 	unsigned short ww;
 
 	/* turn off wow temp for turn off Rx safely */
@@ -392,7 +365,7 @@ bool MACbSafeRxOff(struct vnt_private *priv)
  */
 bool MACbSafeTxOff(struct vnt_private *priv)
 {
-	void __iomem *io_base = priv->PortOffset;
+	void __iomem *io_base = priv->port_offset;
 	unsigned short ww;
 
 	/* Clear TX DMA */
@@ -448,7 +421,7 @@ bool MACbSafeTxOff(struct vnt_private *priv)
  */
 bool MACbSafeStop(struct vnt_private *priv)
 {
-	void __iomem *io_base = priv->PortOffset;
+	void __iomem *io_base = priv->port_offset;
 
 	MACvRegBitsOff(io_base, MAC_REG_TCR, TCR_AUTOBCNTX);
 
@@ -483,7 +456,7 @@ bool MACbSafeStop(struct vnt_private *priv)
  */
 bool MACbShutdown(struct vnt_private *priv)
 {
-	void __iomem *io_base = priv->PortOffset;
+	void __iomem *io_base = priv->port_offset;
 	/* disable MAC IMR */
 	MACvIntDisable(io_base);
 	MACvSetLoopbackMode(priv, MAC_LB_INTERNAL);
@@ -511,7 +484,7 @@ bool MACbShutdown(struct vnt_private *priv)
  */
 void MACvInitialize(struct vnt_private *priv)
 {
-	void __iomem *io_base = priv->PortOffset;
+	void __iomem *io_base = priv->port_offset;
 	/* clear sticky bits */
 	MACvClearStckDS(io_base);
 	/* disable force PME-enable */
@@ -543,7 +516,7 @@ void MACvInitialize(struct vnt_private *priv)
  */
 void MACvSetCurrRx0DescAddr(struct vnt_private *priv, u32 curr_desc_addr)
 {
-	void __iomem *io_base = priv->PortOffset;
+	void __iomem *io_base = priv->port_offset;
 	unsigned short ww;
 	unsigned char org_dma_ctl;
 
@@ -577,7 +550,7 @@ void MACvSetCurrRx0DescAddr(struct vnt_private *priv, u32 curr_desc_addr)
  */
 void MACvSetCurrRx1DescAddr(struct vnt_private *priv, u32 curr_desc_addr)
 {
-	void __iomem *io_base = priv->PortOffset;
+	void __iomem *io_base = priv->port_offset;
 	unsigned short ww;
 	unsigned char org_dma_ctl;
 
@@ -593,7 +566,6 @@ void MACvSetCurrRx1DescAddr(struct vnt_private *priv, u32 curr_desc_addr)
 	iowrite32(curr_desc_addr, io_base + MAC_REG_RXDMAPTR1);
 	if (org_dma_ctl & DMACTL_RUN)
 		iowrite8(DMACTL_RUN, io_base + MAC_REG_RXDMACTL1);
-
 }
 
 /*
@@ -613,7 +585,7 @@ void MACvSetCurrRx1DescAddr(struct vnt_private *priv, u32 curr_desc_addr)
 void MACvSetCurrTx0DescAddrEx(struct vnt_private *priv,
 			      u32 curr_desc_addr)
 {
-	void __iomem *io_base = priv->PortOffset;
+	void __iomem *io_base = priv->port_offset;
 	unsigned short ww;
 	unsigned char org_dma_ctl;
 
@@ -649,7 +621,7 @@ void MACvSetCurrTx0DescAddrEx(struct vnt_private *priv,
 void MACvSetCurrAC0DescAddrEx(struct vnt_private *priv,
 			      u32 curr_desc_addr)
 {
-	void __iomem *io_base = priv->PortOffset;
+	void __iomem *io_base = priv->port_offset;
 	unsigned short ww;
 	unsigned char org_dma_ctl;
 
@@ -693,7 +665,7 @@ void MACvSetCurrTXDescAddr(int iTxType, struct vnt_private *priv,
  */
 void MACvTimer0MicroSDelay(struct vnt_private *priv, unsigned int uDelay)
 {
-	void __iomem *io_base = priv->PortOffset;
+	void __iomem *io_base = priv->port_offset;
 	unsigned char byValue;
 	unsigned int uu, ii;
 
@@ -730,7 +702,7 @@ void MACvTimer0MicroSDelay(struct vnt_private *priv, unsigned int uDelay)
 void MACvOneShotTimer1MicroSec(struct vnt_private *priv,
 			       unsigned int uDelayTime)
 {
-	void __iomem *io_base = priv->PortOffset;
+	void __iomem *io_base = priv->port_offset;
 
 	iowrite8(0, io_base + MAC_REG_TMCTL1);
 	iowrite32(uDelayTime, io_base + MAC_REG_TMDATA1);
@@ -740,7 +712,7 @@ void MACvOneShotTimer1MicroSec(struct vnt_private *priv,
 void MACvSetMISCFifo(struct vnt_private *priv, unsigned short offset,
 		     u32 data)
 {
-	void __iomem *io_base = priv->PortOffset;
+	void __iomem *io_base = priv->port_offset;
 
 	if (offset > 273)
 		return;
@@ -751,7 +723,7 @@ void MACvSetMISCFifo(struct vnt_private *priv, unsigned short offset,
 
 bool MACbPSWakeup(struct vnt_private *priv)
 {
-	void __iomem *io_base = priv->PortOffset;
+	void __iomem *io_base = priv->port_offset;
 	unsigned int ww;
 	/* Read PSCTL */
 	if (MACbIsRegBitsOff(priv, MAC_REG_PSCTL, PSCTL_PS))
@@ -790,17 +762,16 @@ bool MACbPSWakeup(struct vnt_private *priv)
 void MACvSetKeyEntry(struct vnt_private *priv, unsigned short wKeyCtl,
 		     unsigned int uEntryIdx, unsigned int uKeyIdx,
 		     unsigned char *pbyAddr, u32 *pdwKey,
-		     unsigned char byLocalID)
+		     unsigned char local_id)
 {
-	void __iomem *io_base = priv->PortOffset;
+	void __iomem *io_base = priv->port_offset;
 	unsigned short offset;
 	u32 data;
 	int     ii;
 
-	if (byLocalID <= 1)
+	if (local_id <= 1)
 		return;
 
-	pr_debug("%s\n", __func__);
 	offset = MISCFIFO_KEYETRY0;
 	offset += (uEntryIdx * MISCFIFO_KEYENTRYSIZE);
 
@@ -858,7 +829,7 @@ void MACvSetKeyEntry(struct vnt_private *priv, unsigned short wKeyCtl,
  */
 void MACvDisableKeyEntry(struct vnt_private *priv, unsigned int uEntryIdx)
 {
-	void __iomem *io_base = priv->PortOffset;
+	void __iomem *io_base = priv->port_offset;
 	unsigned short offset;
 
 	offset = MISCFIFO_KEYETRY0;

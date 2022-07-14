@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * PHY drivers for the sungem ethernet driver.
  *
@@ -28,11 +29,7 @@
 #include <linux/mii.h>
 #include <linux/ethtool.h>
 #include <linux/delay.h>
-
-#ifdef CONFIG_PPC_PMAC
-#include <asm/prom.h>
-#endif
-
+#include <linux/of.h>
 #include <linux/sungem_phy.h>
 
 /* Link modes of the BCM5400 PHY */
@@ -408,7 +405,7 @@ static int genmii_read_link(struct mii_phy *phy)
 	 * though magic-aneg shouldn't prevent this case from occurring
 	 */
 
-	 return 0;
+	return 0;
 }
 
 static int generic_suspend(struct mii_phy* phy)

@@ -1,14 +1,15 @@
 // See LICENSE for license details.
 
-#include "mmap.h"
 #include "pk.h"
 #include "mtrap.h"
 #include "boot.h"
 #include "bits.h"
+#include "elf.h"
+#include "usermem.h"
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <elf.h>
 #include <string.h>
+#include "mmap.h"
 
 /**
  * The protection flags are in the p_flags section of the program header.
@@ -71,6 +72,9 @@ void load_elf(const char* fn, elf_info* info)
   info->entry = eh.e_entry + bias;
   int flags = MAP_FIXED | MAP_PRIVATE;
   for (int i = eh.e_phnum - 1; i >= 0; i--) {
+    if(ph[i].p_type == PT_INTERP) {
+      panic("not a statically linked ELF program");
+    }
     if(ph[i].p_type == PT_LOAD && ph[i].p_memsz) {
       uintptr_t prepad = ph[i].p_vaddr % RISCV_PGSIZE;
       uintptr_t vaddr = ph[i].p_vaddr + bias;
@@ -80,7 +84,7 @@ void load_elf(const char* fn, elf_info* info)
       int prot = get_prot(ph[i].p_flags);
       if (__do_mmap(vaddr - prepad, ph[i].p_filesz + prepad, prot | PROT_WRITE, flags2, file, ph[i].p_offset - prepad) != vaddr - prepad)
         goto fail;
-      memset((void*)vaddr - prepad, 0, prepad);
+      memset_user((void*)vaddr - prepad, 0, prepad);
       if (!(prot & PROT_WRITE))
         if (do_mprotect(vaddr - prepad, ph[i].p_filesz + prepad, prot))
           goto fail;

@@ -1,18 +1,7 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (C) 2005 Sascha Hauer, Pengutronix
  * Copyright (C) 2007 Wolfgang Grandegger <wg@grandegger.com>
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the version 2 of the GNU General Public License
- * as published by the Free Software Foundation
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <linux/kernel.h>
@@ -28,7 +17,6 @@
 #include <linux/io.h>
 #include <linux/of.h>
 #include <linux/of_device.h>
-#include <linux/of_irq.h>
 
 #include "sja1000.h"
 
@@ -161,7 +149,7 @@ static void sp_populate_of(struct sja1000_priv *priv, struct device_node *of)
 		priv->read_reg = sp_read_reg16;
 		priv->write_reg = sp_write_reg16;
 		break;
-	case 1:	/* fallthrough */
+	case 1:
 	default:
 		priv->read_reg = sp_read_reg8;
 		priv->write_reg = sp_write_reg8;
@@ -240,18 +228,20 @@ static int sp_probe(struct platform_device *pdev)
 				     resource_size(res_mem), DRV_NAME))
 		return -EBUSY;
 
-	addr = devm_ioremap_nocache(&pdev->dev, res_mem->start,
+	addr = devm_ioremap(&pdev->dev, res_mem->start,
 				    resource_size(res_mem));
 	if (!addr)
 		return -ENOMEM;
 
-	if (of)
-		irq = irq_of_parse_and_map(of, 0);
-	else
+	if (of) {
+		irq = platform_get_irq(pdev, 0);
+		if (irq < 0)
+			return irq;
+	} else {
 		res_irq = platform_get_resource(pdev, IORESOURCE_IRQ, 0);
-
-	if (!irq && !res_irq)
-		return -ENODEV;
+		if (!res_irq)
+			return -ENODEV;
+	}
 
 	of_id = of_match_device(sp_of_table, &pdev->dev);
 	if (of_id && of_id->data) {

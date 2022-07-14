@@ -11,9 +11,12 @@
 #include <linux/irq.h>
 #include <linux/io.h>
 #include <asm/exception.h>
+
 #include <plat/irq.h>
-#include <mach/bridge-regs.h>
 #include <plat/orion-gpio.h>
+
+#include "pm.h"
+#include "bridge-regs.h"
 #include "common.h"
 
 static int __initdata gpio0_irqs[4] = {
@@ -70,12 +73,12 @@ void __init dove_init_irq(void)
 	/*
 	 * Initialize gpiolib for GPIOs 0-71.
 	 */
-	orion_gpio_init(NULL, 0, 32, DOVE_GPIO_LO_VIRT_BASE, 0,
+	orion_gpio_init(0, 32, DOVE_GPIO_LO_VIRT_BASE, 0,
 			IRQ_DOVE_GPIO_START, gpio0_irqs);
 
-	orion_gpio_init(NULL, 32, 32, DOVE_GPIO_HI_VIRT_BASE, 0,
+	orion_gpio_init(32, 32, DOVE_GPIO_HI_VIRT_BASE, 0,
 			IRQ_DOVE_GPIO_START + 32, gpio1_irqs);
 
-	orion_gpio_init(NULL, 64, 8, DOVE_GPIO2_VIRT_BASE, 0,
+	orion_gpio_init(64, 8, DOVE_GPIO2_VIRT_BASE, 0,
 			IRQ_DOVE_GPIO_START + 64, gpio2_irqs);
 }

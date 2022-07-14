@@ -53,6 +53,20 @@ int file_dup(file_t* f)
   return -1;
 }
 
+int file_dup3(file_t* f, int newfd)
+{
+  if (newfd < 0 || newfd >= MAX_FDS)
+      return -1;
+
+  if (atomic_cas(&fds[newfd], 0, f) == 0)
+  {
+      file_incref(f);
+      return newfd;
+  }
+
+  return -1;
+}
+
 void file_init()
 {
   // create stdin, stdout, stderr and FDs 0-2
@@ -91,7 +105,7 @@ file_t* file_openat(int dirfd, const char* fn, int flags, int mode)
     return ERR_PTR(-ENOMEM);
 
   size_t fn_size = strlen(fn)+1;
-  long ret = frontend_syscall(SYS_openat, dirfd, va2pa(fn), fn_size, flags, mode, 0, 0);
+  long ret = frontend_syscall(SYS_openat, dirfd, kva2pa(fn), fn_size, flags, mode, 0, 0);
   if (ret >= 0)
   {
     f->kfd = ret;
@@ -119,34 +133,22 @@ int fd_close(int fd)
 
 ssize_t file_read(file_t* f, void* buf, size_t size)
 {
-  populate_mapping(buf, size, PROT_WRITE);
-  return frontend_syscall(SYS_read, f->kfd, va2pa(buf), size, 0, 0, 0, 0);
+  return frontend_syscall(SYS_read, f->kfd, kva2pa(buf), size, 0, 0, 0, 0);
 }
 
 ssize_t file_pread(file_t* f, void* buf, size_t size, off_t offset)
 {
-  populate_mapping(buf, size, PROT_WRITE);
-  return frontend_syscall(SYS_pread, f->kfd, va2pa(buf), size, offset, 0, 0, 0);
+  return frontend_syscall(SYS_pread, f->kfd, kva2pa(buf), size, offset, 0, 0, 0);
 }
 
 ssize_t file_write(file_t* f, const void* buf, size_t size)
 {
-  populate_mapping(buf, size, PROT_READ);
-  return frontend_syscall(SYS_write, f->kfd, va2pa(buf), size, 0, 0, 0, 0);
+  return frontend_syscall(SYS_write, f->kfd, kva2pa(buf), size, 0, 0, 0, 0);
 }
 
 ssize_t file_pwrite(file_t* f, const void* buf, size_t size, off_t offset)
 {
-  populate_mapping(buf, size, PROT_READ);
-  return frontend_syscall(SYS_pwrite, f->kfd, va2pa(buf), size, offset, 0, 0, 0);
-}
-
-int file_stat(file_t* f, struct stat* s)
-{
-  struct frontend_stat buf;
-  long ret = frontend_syscall(SYS_fstat, f->kfd, va2pa(&buf), 0, 0, 0, 0, 0);
-  copy_stat(s, &buf);
-  return ret;
+  return frontend_syscall(SYS_pwrite, f->kfd, kva2pa(buf), size, offset, 0, 0, 0);
 }
 
 int file_truncate(file_t* f, off_t len)

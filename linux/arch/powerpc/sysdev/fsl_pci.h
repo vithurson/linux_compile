@@ -1,13 +1,8 @@
+/* SPDX-License-Identifier: GPL-2.0-or-later */
 /*
  * MPC85xx/86xx PCI Express structure define
  *
  * Copyright 2007,2011 Freescale Semiconductor, Inc
- *
- * This program is free software; you can redistribute  it and/or modify it
- * under  the terms of  the GNU General  Public License as published by the
- * Free Software Foundation;  either version 2 of the  License, or (at your
- * option) any later version.
- *
  */
 
 #ifdef __KERNEL__
@@ -125,7 +120,7 @@ u64 fsl_pci_immrbar_base(struct pci_controller *hose);
 extern struct device_node *fsl_pci_primary;
 
 #ifdef CONFIG_PCI
-void fsl_pci_assign_primary(void);
+void __init fsl_pci_assign_primary(void);
 #else
 static inline void fsl_pci_assign_primary(void) {}
 #endif

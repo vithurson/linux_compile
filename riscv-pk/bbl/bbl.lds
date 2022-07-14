@@ -12,13 +12,11 @@ SECTIONS
   /*--------------------------------------------------------------------*/
 
   /* Begining of code and text segment */
-  . = 0x80000000;
-
+  . = MEM_START;
   _ftext = .;
 
   .text :
   {
-  . = ALIGN(0x100);
     *(.text.init)
   }
 
@@ -69,6 +67,7 @@ SECTIONS
     *(.srodata*)
     *(.gnu.linkonce.d.*)
     *(.comment)
+    *(.dtb)
   }
 
   /* End of initialized data segment */
@@ -99,12 +98,10 @@ SECTIONS
   }
 
   . = ALIGN(0x1000);
-  
+  _end = .;
 
   .payload :
   {
     *(.payload)
   }
-
-  _end = .;
 }

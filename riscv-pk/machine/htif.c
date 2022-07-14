@@ -109,8 +109,9 @@ void htif_console_putchar(uint8_t ch)
 void htif_poweroff()
 {
   while (1) {
-    fromhost = 0;
-    tohost = 1;
+    spinlock_lock(&htif_lock);
+    __set_tohost(0, 0, 1);
+    spinlock_unlock(&htif_lock);
   }
 }
 
@@ -128,7 +129,7 @@ static void htif_open(const struct fdt_scan_node *node, void *extra)
 static void htif_prop(const struct fdt_scan_prop *prop, void *extra)
 {
   struct htif_scan *scan = (struct htif_scan *)extra;
-  if (!strcmp(prop->name, "compatible") && !strcmp((const char*)prop->value, "ucb,htif0")) {
+  if (!strcmp(prop->name, "compatible") && fdt_string_list_index(prop, "ucb,htif0") >= 0) {
     scan->compat = 1;
   }
 }

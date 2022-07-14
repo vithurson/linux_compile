@@ -8,27 +8,27 @@
   .align 6
 trap_table:
 #define BAD_TRAP_VECTOR 0
-  .word bad_trap
-  .word pmp_trap
-  .word illegal_insn_trap
-  .word bad_trap
-  .word misaligned_load_trap
-  .word pmp_trap
-  .word misaligned_store_trap
-  .word pmp_trap
-  .word bad_trap
-  .word mcall_trap
-  .word bad_trap
+  .dc.a bad_trap
+  .dc.a pmp_trap
+  .dc.a illegal_insn_trap
+  .dc.a bad_trap
+  .dc.a misaligned_load_trap
+  .dc.a pmp_trap
+  .dc.a misaligned_store_trap
+  .dc.a pmp_trap
+  .dc.a bad_trap
+  .dc.a mcall_trap
+  .dc.a bad_trap
 #ifdef BBL_BOOT_MACHINE
-  .word mcall_trap
+  .dc.a mcall_trap
 #else
-  .word bad_trap
+  .dc.a bad_trap
 #endif /* BBL_BOOT_MACHINE */
-  .word bad_trap
+  .dc.a bad_trap
 #define TRAP_FROM_MACHINE_MODE_VECTOR 13
-  .word __trap_from_machine_mode
-  .word bad_trap
-  .word bad_trap
+  .dc.a __trap_from_machine_mode
+  .dc.a bad_trap
+  .dc.a bad_trap
 
   .option norvc
   .section .text.init,"ax",@progbits
@@ -112,11 +112,11 @@ trap_vector:
   STORE t0, 5*REGBYTES(sp)
 1:auipc t0, %pcrel_hi(trap_table)  # t0 <- %hi(trap_table)
   STORE t1, 6*REGBYTES(sp)
-  sll t1, a1, 2                    # t1 <- mcause << 2
+  sll t1, a1, LOG_REGBYTES         # t1 <- mcause * ptr size
   STORE t2, 7*REGBYTES(sp)
   add t1, t0, t1                   # t1 <- %hi(trap_table)[mcause]
   STORE s0, 8*REGBYTES(sp)
-  LWU t1, %pcrel_lo(1b)(t1)         # t1 <- trap_table[mcause]
+  LOAD t1, %pcrel_lo(1b)(t1)       # t1 <- trap_table[mcause]
   STORE s1, 9*REGBYTES(sp)
   mv a0, sp                        # a0 <- regs
   STORE a2,12*REGBYTES(sp)
@@ -255,6 +255,17 @@ do_reset:
   li x31, 0
   csrw mscratch, x0
 
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+  # fixup endianness before making any loads or stores
+#if __riscv_xlen == 32
+  li t0, MSTATUSH_MBE
+  csrs CSR_MSTATUSH, t0
+#else
+  li t0, MSTATUS_MBE
+  csrs CSR_MSTATUS, t0
+#endif
+#endif
+
   # write mtvec and make sure it sticks
   la t0, trap_vector
   csrw mtvec, t0
@@ -267,11 +278,27 @@ do_reset:
   slli a2, a3, RISCV_PGSHIFT
   add sp, sp, a2
 
-  # Boot on the first hart
-  #la a1, devicetree
-  #li a0, 0
-  beqz a3, init_first_hart
+  bnez a3, .LmultiHartInit
 
+#ifdef ZERO_BSS
+  # Zero out BSS; linker script provides alignment and padding
+  la t0, _fbss
+  la t1, _end
+  beq t0, t1, 2f
+1:STORE zero, 0(t0)
+  addi t0, t0, REGBYTES
+  bne t0, t1, 1b
+2:
+#endif
+
+  # Boot on the first hart
+#ifdef CUSTOM_DTS
+  csrr a0, mhartid
+  la a1, dtb_start
+#endif
+  j init_first_hart
+
+.LmultiHartInit:
   # set MSIE bit to receive IPI
   li a2, MIP_MSIP
   csrw mie, a2
@@ -296,18 +323,23 @@ do_reset:
   # make sure our hart id is within a valid range
   fence
   li a2, MAX_HARTS
-  bltu a3, a2, init_other_hart
+  bgeu a3, a2, .Lcont
+  j init_other_hart
+.Lcont:
 #endif
   wfi
   j .LmultiHart
 
-  .globl _dtb
-_dtb:
-  .incbin DTB
+#ifdef CUSTOM_DTS
+.section .dtb
+.align 3
+.global dtb_start, dtb_end
+dtb_start:
+.incbin "custom.dtb"
+dtb_end:
+#endif
 
   .bss
   .align RISCV_PGSHIFT
 stacks:
   .skip RISCV_PGSIZE * MAX_HARTS
-
-# PK_ENABLE_DTS

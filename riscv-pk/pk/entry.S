@@ -40,17 +40,13 @@
   csrrw  t0,sscratch,x0
   csrr   s0,sstatus
   csrr   t1,sepc
-  csrr   t2,sbadaddr
+  csrr   t2,stval
   csrr   t3,scause
   STORE  t0,2*REGBYTES(x2)
   STORE  s0,32*REGBYTES(x2)
   STORE  t1,33*REGBYTES(x2)
   STORE  t2,34*REGBYTES(x2)
   STORE  t3,35*REGBYTES(x2)
-
-  # get faulting insn, if it wasn't a fetch-related trap
-  li x5,-1
-  STORE x5,36*REGBYTES(x2)
 1:
   .endm
 

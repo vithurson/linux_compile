@@ -6,30 +6,59 @@
 #include "elf.h"
 #include "mtrap.h"
 #include "frontend.h"
+#include "bits.h"
+#include "usermem.h"
+#include "flush_icache.h"
 #include <stdbool.h>
 
 elf_info current;
 long disabled_hart_mask;
 
-static void handle_option(const char* s)
+static void help()
 {
-  switch (s[1])
-  {
-    case 's': // print cycle count upon termination
-      current.cycle0 = 1;
-      break;
+  printk("Proxy kernel\n\n");
+  printk("usage: pk [pk options] <user program> [program options]\n");
+  printk("Options:\n");
+  printk("  -h, --help            Print this help message\n");
+  printk("  -p                    Disable on-demand program paging\n");
+  printk("  -s                    Print cycles upon termination\n");
 
-    case 'p': // disable demand paging
-      demand_paging = 0;
-      break;
-
-    default:
-      panic("unrecognized option: `%c'", s[1]);
-      break;
-  }
+  shutdown(0);
 }
 
-#define MAX_ARGS 64
+static void suggest_help()
+{
+  printk("Try 'pk --help' for more information.\n");
+  shutdown(1);
+}
+
+static void handle_option(const char* arg)
+{
+  if (strcmp(arg, "-h") == 0 || strcmp(arg, "--help") == 0) {
+    help();
+    return;
+  }
+
+  if (strcmp(arg, "-s") == 0) {  // print cycle count upon termination
+    current.cycle0 = 1;
+    return;
+  }
+
+  if (strcmp(arg, "-p") == 0) { // disable demand paging
+    demand_paging = 0;
+    return;
+  }
+
+  if (strcmp(arg, "--randomize-mapping") == 0) {
+    randomize_mapping = 1;
+    return;
+  }
+
+  panic("unrecognized option: `%s'", arg);
+  suggest_help();
+}
+
+#define MAX_ARGS 256
 typedef union {
   uint64_t buf[MAX_ARGS];
   char* argv[MAX_ARGS];
@@ -37,16 +66,19 @@ typedef union {
 
 static size_t parse_args(arg_buf* args)
 {
-  long r = frontend_syscall(SYS_getmainvars, va2pa(args), sizeof(*args), 0, 0, 0, 0, 0);
+  long r = frontend_syscall(SYS_getmainvars, kva2pa(args), sizeof(*args), 0, 0, 0, 0, 0);
+  if (r != 0)
+    panic("args must not exceed %d bytes", (int)sizeof(arg_buf));
+
   kassert(r == 0);
   uint64_t* pk_argv = &args->buf[1];
   // pk_argv[0] is the proxy kernel itself.  skip it and any flags.
   size_t pk_argc = args->buf[0], arg = 1;
-  for ( ; arg < pk_argc && *(char*)(uintptr_t)pk_argv[arg] == '-'; arg++)
-    handle_option((const char*)(uintptr_t)pk_argv[arg]);
+  for ( ; arg < pk_argc && *(char*)pa2kva(pk_argv[arg]) == '-'; arg++)
+    handle_option((const char*)pa2kva(pk_argv[arg]));
 
   for (size_t i = 0; arg + i < pk_argc; i++)
-    args->argv[i] = (char*)(uintptr_t)pk_argv[arg + i];
+    args->argv[i] = (char*)pa2kva(pk_argv[arg + i]);
   return pk_argc - arg;
 }
 
@@ -60,16 +92,22 @@ static void init_tf(trapframe_t* tf, long pc, long sp)
 
 static void run_loaded_program(size_t argc, char** argv, uintptr_t kstack_top)
 {
+  size_t mem_pages = mem_size >> RISCV_PGSHIFT;
+  size_t stack_size = MIN(mem_pages >> 5, 2048) * RISCV_PGSIZE;
+  size_t stack_bottom = __do_mmap(current.mmap_max - stack_size, stack_size, PROT_READ|PROT_WRITE|PROT_EXEC, MAP_PRIVATE|MAP_ANONYMOUS|MAP_FIXED, 0, 0);
+  kassert(stack_bottom != (uintptr_t)-1);
+  current.stack_top = stack_bottom + stack_size;
+
   // copy phdrs to user stack
   size_t stack_top = current.stack_top - current.phdr_size;
-  memcpy((void*)stack_top, (void*)current.phdr, current.phdr_size);
+  memcpy_to_user((void*)stack_top, (void*)current.phdr, current.phdr_size);
   current.phdr = stack_top;
 
   // copy argv to user stack
   for (size_t i = 0; i < argc; i++) {
     size_t len = strlen((char*)(uintptr_t)argv[i])+1;
     stack_top -= len;
-    memcpy((void*)stack_top, (void*)(uintptr_t)argv[i], len);
+    memcpy_to_user((void*)stack_top, (void*)(uintptr_t)argv[i], len);
     argv[i] = (void*)stack_top;
   }
 
@@ -81,7 +119,7 @@ static void run_loaded_program(size_t argc, char** argv, uintptr_t kstack_top)
   for (size_t i = 0; i < envc; i++) {
     size_t len = strlen(envp[i]) + 1;
     stack_top -= len;
-    memcpy((void*)stack_top, envp[i], len);
+    memcpy_to_user((void*)stack_top, envp[i], len);
     envp[i] = (void*)stack_top;
   }
 
@@ -104,16 +142,17 @@ static void run_loaded_program(size_t argc, char** argv, uintptr_t kstack_top)
 
   // place argc, argv, envp, auxp on stack
   #define PUSH_ARG(type, value) do { \
-    *((type*)sp) = (type)value; \
-    sp += sizeof(type); \
+    type __tmp = (type)(value); \
+    memcpy_to_user(sp, &__tmp, sizeof(type)); \
+    sp ++; \
   } while (0)
 
   #define STACK_INIT(type) do { \
     unsigned naux = sizeof(aux)/sizeof(aux[0]); \
     stack_top -= (1 + argc + 1 + envc + 1 + 2*naux) * sizeof(type); \
     stack_top &= -16; \
-    long sp = stack_top; \
-    PUSH_ARG(type, argc); \
+    type *sp = (void*)stack_top; \
+    PUSH_ARG(int, argc); \
     for (unsigned i = 0; i < argc; i++) \
       PUSH_ARG(type, argv[i]); \
     PUSH_ARG(type, 0); /* argv[argc] = NULL */ \
@@ -129,27 +168,37 @@ static void run_loaded_program(size_t argc, char** argv, uintptr_t kstack_top)
   STACK_INIT(uintptr_t);
 
   if (current.cycle0) { // start timer if so requested
-    current.time0 = rdtime();
-    current.cycle0 = rdcycle();
-    current.instret0 = rdinstret();
+    current.time0 = rdtime64();
+    current.cycle0 = rdcycle64();
+    current.instret0 = rdinstret64();
   }
 
   trapframe_t tf;
   init_tf(&tf, current.entry, stack_top);
-  __clear_cache(0, 0);
+  __riscv_flush_icache();
   write_csr(sscratch, kstack_top);
   start_user(&tf);
 }
 
-static void rest_of_boot_loader(uintptr_t kstack_top)
+void rest_of_boot_loader(uintptr_t kstack_top);
+
+asm ("\n\
+  .globl rest_of_boot_loader\n\
+rest_of_boot_loader:\n\
+  mv sp, a0\n\
+  tail rest_of_boot_loader_2");
+
+void rest_of_boot_loader_2(uintptr_t kstack_top)
 {
-  arg_buf args;
+  file_init();
+
+  static arg_buf args; // avoid large stack allocation
   size_t argc = parse_args(&args);
   if (!argc)
     panic("tell me what ELF to load!");
 
   // load program named by argv[0]
-  long phdrs[128];
+  static long phdrs[128]; // avoid large stack allocation
   current.phdr = (uintptr_t)phdrs;
   current.phdr_size = sizeof(phdrs);
   load_elf(args.argv[0], &current);
@@ -159,14 +208,15 @@ static void rest_of_boot_loader(uintptr_t kstack_top)
 
 void boot_loader(uintptr_t dtb)
 {
+  uintptr_t kernel_stack_top = pk_vm_init();
+
   extern char trap_entry;
-  write_csr(stvec, &trap_entry);
+  write_csr(stvec, pa2kva(&trap_entry));
   write_csr(sscratch, 0);
   write_csr(sie, 0);
-  set_csr(sstatus, SSTATUS_SUM | SSTATUS_FS);
+  set_csr(sstatus, SSTATUS_FS | SSTATUS_VS);
 
-  file_init();
-  enter_supervisor_mode(rest_of_boot_loader, pk_vm_init(), 0);
+  enter_supervisor_mode((void*)pa2kva(rest_of_boot_loader), pa2kva(kernel_stack_top), 0);
 }
 
 void boot_other_hart(uintptr_t dtb)

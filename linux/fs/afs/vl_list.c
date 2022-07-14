@@ -1,12 +1,8 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
 /* AFS vlserver list management.
  *
  * Copyright (C) 2018 Red Hat, Inc. All Rights Reserved.
  * Written by David Howells (dhowells@redhat.com)
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version
- * 2 of the License, or (at your option) any later version.
  */
 
 #include <linux/kernel.h>
@@ -25,6 +21,7 @@ struct afs_vlserver *afs_alloc_vlserver(const char *name, size_t name_len,
 		rwlock_init(&vlserver->lock);
 		init_waitqueue_head(&vlserver->probe_wq);
 		spin_lock_init(&vlserver->probe_lock);
+		vlserver->rtt = UINT_MAX;
 		vlserver->name_len = name_len;
 		vlserver->port = port;
 		memcpy(vlserver->name, name, name_len);
@@ -232,18 +229,16 @@ struct afs_vlserver_list *afs_extract_vlserver_list(struct afs_cell *cell,
 		if (bs.status > NR__dns_lookup_status)
 			bs.status = NR__dns_lookup_status;
 
+		/* See if we can update an old server record */
 		server = NULL;
-		if (previous) {
-			/* See if we can update an old server record */
-			for (i = 0; i < previous->nr_servers; i++) {
-				struct afs_vlserver *p = previous->servers[i].server;
+		for (i = 0; i < previous->nr_servers; i++) {
+			struct afs_vlserver *p = previous->servers[i].server;
 
-				if (p->name_len == bs.name_len &&
-				    p->port == bs.port &&
-				    strncasecmp(b, p->name, bs.name_len) == 0) {
-					server = afs_get_vlserver(p);
-					break;
-				}
+			if (p->name_len == bs.name_len &&
+			    p->port == bs.port &&
+			    strncasecmp(b, p->name, bs.name_len) == 0) {
+				server = afs_get_vlserver(p);
+				break;
 			}
 		}
 
@@ -285,8 +280,8 @@ struct afs_vlserver_list *afs_extract_vlserver_list(struct afs_cell *cell,
 			struct afs_addr_list *old = addrs;
 
 			write_lock(&server->lock);
-			rcu_swap_protected(server->addresses, old,
-					   lockdep_is_held(&server->lock));
+			old = rcu_replace_pointer(server->addresses, old,
+						  lockdep_is_held(&server->lock));
 			write_unlock(&server->lock);
 			afs_put_addrlist(old);
 		}
