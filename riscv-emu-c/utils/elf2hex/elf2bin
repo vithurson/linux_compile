@@ -2,7 +2,7 @@
 
 unset input
 unset output
-objcopy=""
+objcopy="riscv64-linux-objcopy"
 while [[ "$1" != "" ]]
 do
     case "$1" in

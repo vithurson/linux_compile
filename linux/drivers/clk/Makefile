@@ -129,5 +129,5 @@ ifeq ($(CONFIG_COMMON_CLK), y)
 obj-$(CONFIG_X86)			+= x86/
 endif
 obj-y					+= xilinx/
-obj-$(CONFIG_ARCH_ZYNQ)			+= zynq/
+obj-y			+= zynq/
 obj-$(CONFIG_COMMON_CLK_ZYNQMP)         += zynqmp/

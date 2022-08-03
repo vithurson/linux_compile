@@ -4,8 +4,8 @@
 #include <termios.h>
 #include <unistd.h>
 #include <fcntl.h>
+//#define echo
 #ifdef TEMU
-
 BlockDevice drive1, *drive=&drive1;
 
 char *fname;
@@ -14,9 +14,9 @@ char *fname;
 VIRTIODevice *block_dev;
 
 #endif
-
 int kbhit(void)
 {
+#ifdef echo
   struct termios oldt, newt;
   int ch;
   int oldf;
@@ -39,14 +39,18 @@ int kbhit(void)
     return 1;
   }
 
+#endif
   return 0;
+  
 }
 
  void unset_echo() {
+#ifdef echo
    struct termios term;
    tcgetattr(0, &term);
    term.c_lflag &= ~ECHO;
    tcsetattr(STDIN_FILENO, TCSAFLUSH, &term);
+#endif
  }
 
 
@@ -305,11 +309,11 @@ int main(int argc, char** argv){
 
 
 
-        if (PC_phy >= DRAM_BASE){ // mapping to RAM
+        if (PC_phy >= DRAM_BASE & PC_phy<(DRAM_BASE+0x10000000)){ // mapping to RAM
             PC_phy = PC_phy - DRAM_BASE; // mapping to emulator array memory
         }
         else{ // mapping to peripheral
-            //cout << "peripheral access PC :"<< hex << PC_phy << endl;
+            cout << "peripheral access PC :"<< hex << PC_phy << endl;
             break;
         }
 
@@ -463,6 +467,10 @@ int main(int argc, char** argv){
 
                 if ((load_addr != FIFO_ADDR_RX) && ((load_addr != FIFO_ADDR_TX))){
                     {
+                        if(load_addr==0){
+                            printf("null pointer exception \n");
+                            exit(0);
+                        }
 
                         load_addr_phy = translate(load_addr, LOAD, cp);
 
@@ -486,18 +494,20 @@ int main(int argc, char** argv){
                             continue;
                         }
 
-                        if (load_addr_phy >= DRAM_BASE){ // mapping to RAM
+                        if ((load_addr_phy >= DRAM_BASE) & (load_addr_phy<= (DRAM_BASE+0x10000000))){ // mapping to RAM
                             load_addr_phy = load_addr_phy - DRAM_BASE; // mapping to emulator array memory
 
-                            if (load_addr_phy > DRAM_SIZE){
+                            if (load_addr_phy > 0x10000000){
                                 cout << "ERROR : Exceeds RAM limit" << endl;
                                 exit(0);
                             }
                         load_data = memory.at(load_addr_phy/8);
                       
+//                            printf("tranlstation %0lx %0lx, %0lx\n",load_addr, load_addr_phy,load_data);
 
                         }
                         else{ // mapping to peripheral
+                           // printf("peripheral %0x\n",load_addr_phy);
 
                             if ((load_addr_phy >= CLINT_BASE) & (load_addr_phy <= (CLINT_BASE+CLINT_SIZE))){
                                 load_data = clint_read(load_addr_phy-CLINT_BASE);
@@ -513,8 +523,41 @@ int main(int argc, char** argv){
                             }
 #endif
                             else {
-                                cout << "New peripheral"<< hex << load_addr_phy<<endl;
-                                load_data=0;
+                                    if ( load_addr_phy == FIFO_ADDR_RX ) {
+                                        if(kbhit()){
+                                            wb_data=0;
+                                            }
+                                        else wb_data=2;
+                                    //     printf("waiting 1\n");
+                                    //    int c =getchar();
+                                    //     printf("waiting 2\n");
+                                    //    
+                                    //    if (c != EOF){
+                                    //        wb_data = 0 ;
+                                    //        fifo_queue.push(c);
+                                    //    }
+                                    //    else
+                                    //     wb_data = 2 ;
+
+                                        load_data = wb_data;
+                                    }
+                                    else if ( load_addr_phy == FIFO_ADDR_TX ){
+                                        // if(kbhit())
+                                        wb_data=getchar();
+                                        //if (fifo_queue.empty()){
+                                        //    wb_data = (uint_t)-1 ;
+                                        //}
+                                        //else{
+                                        //    wb_data = fifo_queue.front();
+                                        //    fifo_queue.pop();
+                                        //}
+                                        load_data = wb_data;
+
+                                    }
+                                    else {
+                                            load_data=0xffff;
+                                    }
+                               // cout << "New peripheral load"<< hex << load_addr_phy<<"val"<<load_addr<<endl;
                                 //exit(0);
                             }
                         }
@@ -603,7 +646,8 @@ int main(int argc, char** argv){
                         }
 
                     }
-                } else if ( load_addr == FIFO_ADDR_RX ) {
+                } 
+                else if ( load_addr == FIFO_ADDR_RX ) {
                     if(kbhit()){
                         wb_data=0;
                         }
@@ -633,6 +677,9 @@ int main(int argc, char** argv){
                     //}
                     reg_file[rd] = wb_data;
 
+                }
+                else {
+                    printf("unknow address %0lx\n",load_addr);
                 }
                 break;
 
@@ -670,12 +717,12 @@ int main(int argc, char** argv){
                             continue;
                         }
 
-                    if (store_addr_phy >= DRAM_BASE){ // mapping to RAM
+                    if ((store_addr_phy >= DRAM_BASE) & (store_addr_phy<= (DRAM_BASE+0x10000000)) ){ // mapping to RAM
                         store_addr_phy = store_addr_phy - DRAM_BASE; // mapping to emulator array memory
-                          if (store_addr_phy >= ((1llu)<<MEM_SIZE)){
-                                cout << "Physical memory limit exceeded : "<<hex<<store_addr_phy<<endl;
+                          if (store_addr_phy >= (0x10000000)){
+                                cout << "Physical memory limit exceeded : "<<hex<<store_addr_phy+DRAM_BASE<<endl;
+                        printf("dram size %lx\n", 0x10000000);
                                 cout << "PC : "<<hex<<PC_phy<<endl;
-                                exit(0);
                             }else{
                                 
                                 store_data = memory.at(store_addr_phy/8);
@@ -726,7 +773,7 @@ int main(int argc, char** argv){
                             clint_write(store_addr_phy-CLINT_BASE, reg_file[rs2]);
                         }
                         else if ((store_addr_phy >= PLIC_BASE) & (store_addr_phy <= (PLIC_BASE+PLIC_SIZE))){
-                                 //   printf("addr %0x, data %0x\n",store_addr_phy,reg_file[rs2]);
+                                    printf("plic write addr %0x, data %0x\n",store_addr_phy,reg_file[rs2]);
                             plic_write(store_addr_phy-PLIC_BASE, reg_file[rs2]);
                         }
 #ifdef TEMU
@@ -735,7 +782,13 @@ int main(int argc, char** argv){
                         }
 #endif
                         else {
-                            cout << "New peripheral"<< hex << load_addr_phy<<endl;
+                            if(store_addr_phy == FIFO_ADDR_TX){
+                                #ifdef DEBUG
+                                    printf("STORE2\n");
+                                #endif
+                                cout << (char)reg_file[rs2]<<std::flush;
+                            }
+                         //   cout << "New peripheral store"<< hex << store_addr<<" value "<<hex<<reg_file[rs2]<<endl;
                             //exit(0);
                         }
                     }
@@ -1030,8 +1083,9 @@ int main(int argc, char** argv){
 
                             continue;
                         }
-                    if(load_addr_phy>0x80000000) {
-                        load_addr_phy = load_addr_phy -0x80000000;
+                    if(load_addr_phy>DRAM_BASE & load_addr_phy<DRAM_BASE+0x10000000) {
+                        
+                        load_addr_phy = load_addr_phy -DRAM_BASE;
                     }
                     else {
                         printf("illegal access %x %x\n",load_addr_phy,load_addr);
@@ -1263,8 +1317,8 @@ int main(int argc, char** argv){
 
                             continue;
                         }
-                    if(load_addr_phy>0x80000000) {
-                        load_addr_phy = load_addr_phy -0x80000000;
+                    if(load_addr_phy>DRAM_BASE & load_addr_phy<(DRAM_BASE+0x10000000)) {
+                        load_addr_phy = load_addr_phy -DRAM_BASE;
                     }
                     else {
                        printf("illegal access %x %x\n",load_addr_phy,load_addr);
@@ -1747,11 +1801,11 @@ int main(int argc, char** argv){
             PC = excep_function(PC,CAUSE_ILLEGAL_INSTRUCTION,CAUSE_ILLEGAL_INSTRUCTION,CAUSE_ILLEGAL_INSTRUCTION,cp);
             write_tval = true;
         }
-        else if(EBREAK) {
-            EBREAK = false;
-            PC = excep_function(PC,CAUSE_BREAKPOINT,CAUSE_BREAKPOINT,CAUSE_BREAKPOINT,cp);
-            write_tval = false;
-        }
+       // else if(EBREAK) {
+       //     EBREAK = false;
+       //     PC = excep_function(PC,CAUSE_BREAKPOINT,CAUSE_BREAKPOINT,CAUSE_BREAKPOINT,cp);
+       //     write_tval = false;
+       // }
         else if(INS_ADDR_MISSALIG) {
             INS_ADDR_MISSALIG = false;
             PC = excep_function(PC,CAUSE_MISALIGNED_FETCH,CAUSE_MISALIGNED_FETCH,CAUSE_MISALIGNED_FETCH,cp);

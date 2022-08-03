@@ -26,9 +26,9 @@
       };
     };
   };
-  memory@80000000 {
+  memory@10000000 {
     device_type = "memory";
-    reg = <0x0 0x80000000 0x0 0x9000000 >;
+    reg = <0x0 0x10000000 0x0 0x9000000 >;
   };
   amba: amba {
     #interrupt-cells = <1>;
@@ -46,21 +46,21 @@
         #interrupt-cells = <1>;
       interrupt-controller;
       compatible = "riscv,plic0";
-      riscv,ndev = <0x1f>;
+      riscv,ndev = <32>;
       riscv,max-priority = <7>;
       reg-names = "control";
       reg = <0x00 0x40000000 0x00 0x400000>;
       interrupts-extended = <&CPU0_intc 0x09>;
     };
-    virtio_mmio@41000000{
-        status = "disabled";
-        #interrupt-cells = <1>;
-        interrupts-extended = <&plic0 1>;
-		reg = <0x0 0x41000000 0x0 0x1000>;
-		compatible = "virtio,mmio";
-	};
+//    virtio_mmio@41000000{
+//        status = "disabled";
+//        #interrupt-cells = <1>;
+//        interrupts-extended = <&plic0 1>;
+//		reg = <0x0 0x41000000 0x0 0x1000>;
+//		compatible = "virtio,mmio";
+//	};
         uart0: serial@e0000000 {
-            status = "disabled";
+            status = "okay";
             #interrupt-cells = <1>;
             compatible = "xlnx,xuartps", "cdns,uart-r1p8";
             clocks = <&clkc 23>, <&clkc 40>;
@@ -69,37 +69,38 @@
             interrupts-extended = <&plic0 1>;
         };
     sdhci@e0100000 {
-        		status = "okay";
         #interrupt-cells = <1>;
+        status= "okay";
         compatible = "xlnx,zynqmp-8.9a", "arasan,sdhci-8.9a";
         interrupts-extended = <&plic0 2>;
         reg = <0x0 0xe0100000 0x0 0x1000>;
         clock-names = "clk_xin", "clk_ahb";
         clocks = <&clkc 22>, <&clkc 33>; 
-        xlnx,has-cd = <0x1>;
-	    xlnx,has-power = <0x0>;
-	    xlnx,has-wp = <0x1>;
+        no-1-8-v;
+    
     };
-    sdhci@e0101000 {
-        status = "okay";
-        #interrupt-cells = <1>;
-        compatible = "xlnx,zynqmp-8.9a", "arasan,sdhci-8.9a";
-        interrupts-extended = <&plic0 3>;
-        reg = <0x0 0xe0101000 0x0 0x1000>;
-        clock-names = "clk_xin", "clk_ahb";
-        clocks = <&clkc 22>, <&clkc 33>; 
-        xlnx,device_id = <0x0>;
-    };
-    slcr: slcr@f8000000 {
+    gem0: ethernet@e000b000 {
+            #interrupt-cells = <1>;
+			compatible = "cdns,zynq-gem", "cdns,gem";
+			reg = <0 0xe000b000 0 0x1000>;
+			status = "okay";
+			interrupts-extended = <&plic0 3>;
+			clocks = <&clkc 30>, <&clkc 30>, <&clkc 13>;
+			clock-names = "pclk", "hclk", "tx_clk";
 			#address-cells = <1>;
-			#size-cells = <1>;
-			compatible = "xlnx,zynq-slcr", "syscon";
-			reg = <0x42000000 0 0x1000>;
+			#size-cells = <0>;
+		};
+
+        slcr: slcr@f8000000 {
+             #address-cells = <2>;
+              #size-cells = <2>;
+			compatible = "xlnx,zynq-slcr", "syscon", "simple-mfd";
+			reg = <0 0xF8000000 0 0x1000>;
 			ranges;
 			clkc: clkc@100 {
 				#clock-cells = <1>;
 				compatible = "xlnx,ps7-clkc";
-				ps-clk-frequency = <33333333>;
+				ps-clk-frequency = <50000000>;
 				fclk-enable = <0xf>;
 				clock-output-names = "armpll", "ddrpll", "iopll", "cpu_6or4x",
 						"cpu_3or2x", "cpu_2x", "cpu_1x", "ddr2x", "ddr3x",
@@ -114,60 +115,15 @@
 						"dbg_trc", "dbg_apb";
 				reg = <0 0x100 0 0x100>;
 			};
-		};
-   //    usb_0: usb@e0002000 {
-   //      compatible = "xlnx,zynq-usb-2.20.a", "chipidea,usb2";
-   //      clocks = <&clkc 28>;
-   //      dr_mode = "host";
-   //      interrupt-parent = <&plic0>;
-   //      interrupts = <2>;
-   //      reg = <0xe0002000 0x1000>;
-   //      usb-phy = <&usb_phy0>;
-   //  };
- 
-   //  usb_phy0: phy0 {
-   //     compatible = "ulpi-phy";
-   //     #phy-cells = <0>;
-   //     reg = <0xe0002000 0x1000>;
-   //     view-port = <0x170>;
-   //     drv-vbus;
-   // };
-   // ps7_ethernet_0: ps7-ethernet@e000b000 {
-   //     #address-cells = <1>;
-   //     #size-cells = <0>;
-   //     compatible = "xlnx,ps7-ethernet-1.00.a";
-   //     interrupt-parent = <&plic0>;
-   //     interrupts = <3 4>;
-   //     phy-handle = <&phy0>;
-   //     phy-mode = "rgmii";
-   //     reg = < 0xe000b000 0x1000 >;
-   //     xlnx,enet-slcr-1000mbps-div0 = <0xa>;
-   //     xlnx,enet-slcr-1000mbps-div1 = <0x1>;
-   //     xlnx,enet-slcr-100mbps-div0 = <0xa>;
-   //     xlnx,enet-slcr-100mbps-div1 = <0x5>;
-   //     xlnx,enet-slcr-10mbps-div0 = <0xa>;
-   //     xlnx,enet-slcr-10mbps-div1 = <0x32>;
-   //     xlnx,ptp-enet-clock = <120833336>;
-   //     mdio {
-   //         #address-cells = <1>;
-   //         #size-cells = <0>;
-   //         phy0: phy@16 {
-   //             compatible = "marvell,88e1116r";
-   //             device_type = "ethernet-phy";
-   //             reg = <16>;
-   //         } ;
-   //         phy1: phy@17 {
-   //             compatible = "marvell,88e1116r";
-   //             device_type = "ethernet-phy";
-   //             reg = <17>;
-   //         } ;
-   //     } ;
-   // } ;
 
+		};
   };
 
   chosen {
-    bootargs = "root=/dev/ram rw rootfstype=ramfs console=hvc0";
+    //  bootargs = "root=/dev/mmcblk0p2 rw rootwait console=ttyPS0,921600 sdhci.debug_quirks=96";
+      bootargs = "root=/dev/mmcblk0p2 rw rootwait console=hvc0 sdhci.debug_quirks=96";
+     // bootargs = "root=/dev/ram rw rootfstype=ramfs console=hvc0 sdhci.debug_quirks=96";
+    //bootargs = "root=/dev/mmcblk0p2 rootwait rw  console=hvc0 sdhci.debug_quirks=96";
    // bootargs = "root=/dev/sda rw  console=hvc0";
   };
 

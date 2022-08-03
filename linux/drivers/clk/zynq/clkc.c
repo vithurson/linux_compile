@@ -223,7 +223,7 @@ static void __init zynq_clk_setup(struct device_node *np)
 	const char *swdt_ext_clk_mux_parents[2];
 	const char *can_mio_mux_parents[NUM_MIO_PINS];
 	const char *dummy_nm = "dummy_name";
-
+    	zynq_clkc_base = ioremap(0xf8000100,0x100);
 	pr_info("Zynq clock init\n");
 
 	/* get clock output names from DT */

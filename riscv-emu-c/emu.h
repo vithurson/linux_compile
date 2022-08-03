@@ -75,14 +75,14 @@ using namespace std;
 typedef uint64_t uint_t;
 typedef uint64_t data_t;
 
-#define MEM_SIZE 28
+#define MEM_SIZE 25
 #define XLEN     64
 #define FIFO_ADDR_RX 0xe000002c
 #define FIFO_ADDR_TX 0xe0000030
 // #define FIFO_ADDR_RX 0xe000102c
 // #define FIFO_ADDR_TX 0xe0001030
 
-#define DRAM_BASE 0x80000000
+#define DRAM_BASE 0x10000000
 
 #define DRAM_SIZE (((1llu)<<(MEM_SIZE))*8)
 
@@ -112,7 +112,7 @@ bool csr_read_success = false;
 #define CLINT_SIZE 0x00c0000
 #define PLIC_BASE 0x40000000
 #define PLIC_SIZE 0x400000
-#define VIRTIO_BASE 0x40010000
+#define VIRTIO_BASE 0x41000000
 #define VIRTIO_SIZE 0x1000
 
 #define MTIME_ADDR (CLINT_BASE+0xbff8)

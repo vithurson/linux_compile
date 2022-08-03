@@ -706,10 +706,11 @@ static void macb_mac_link_up(struct phylink_config *config,
 		 */
 		bp->macbgem_ops.mog_init_rings(bp);
 		macb_init_buffers(bp);
-
-		for (q = 0, queue = bp->queues; q < bp->num_queues; ++q, ++queue)
+		for (q = 0, queue = bp->queues; q < bp->num_queues; ++q, ++queue){
+            printk("q pointer %0lx\n",virt_to_phys(queue));
 			queue_writel(queue, IER,
 				     bp->rx_intr_mask | MACB_TX_INT_FLAGS | MACB_BIT(HRESP));
+        }
 	}
 
 	macb_or_gem_writel(bp, NCFGR, ctrl);
