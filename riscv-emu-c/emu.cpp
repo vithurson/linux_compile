@@ -555,9 +555,9 @@ int main(int argc, char** argv){
 
                                     }
                                     else {
-                                            load_data=0xffff;
+                                            load_data=0x1000;
                                     }
-                               // cout << "New peripheral load"<< hex << load_addr_phy<<"val"<<load_addr<<endl;
+                                //cout << "New peripheral load"<< hex << load_addr_phy<<"val"<<load_addr<<endl;
                                 //exit(0);
                             }
                         }
@@ -773,7 +773,6 @@ int main(int argc, char** argv){
                             clint_write(store_addr_phy-CLINT_BASE, reg_file[rs2]);
                         }
                         else if ((store_addr_phy >= PLIC_BASE) & (store_addr_phy <= (PLIC_BASE+PLIC_SIZE))){
-                                    printf("plic write addr %0x, data %0x\n",store_addr_phy,reg_file[rs2]);
                             plic_write(store_addr_phy-PLIC_BASE, reg_file[rs2]);
                         }
 #ifdef TEMU

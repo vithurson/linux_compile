@@ -52,13 +52,13 @@
       reg = <0x00 0x40000000 0x00 0x400000>;
       interrupts-extended = <&CPU0_intc 0x09>;
     };
-//    virtio_mmio@41000000{
-//        status = "disabled";
-//        #interrupt-cells = <1>;
-//        interrupts-extended = <&plic0 1>;
-//		reg = <0x0 0x41000000 0x0 0x1000>;
-//		compatible = "virtio,mmio";
-//	};
+    //virtio_mmio@41000000{
+    //        status = "okay";
+    //    #interrupt-cells = <1>;
+    //    interrupts-extended = <&plic0 5>;
+	//	reg = <0x0 0x41000000 0x0 0x1000>;
+	//	compatible = "virtio,mmio";
+	//};
         uart0: serial@e0000000 {
             status = "okay";
             #interrupt-cells = <1>;
@@ -79,17 +79,46 @@
         no-1-8-v;
     
     };
-    gem0: ethernet@e000b000 {
-            #interrupt-cells = <1>;
-			compatible = "cdns,zynq-gem", "cdns,gem";
-			reg = <0 0xe000b000 0 0x1000>;
-			status = "okay";
-			interrupts-extended = <&plic0 3>;
-			clocks = <&clkc 30>, <&clkc 30>, <&clkc 13>;
-			clock-names = "pclk", "hclk", "tx_clk";
-			#address-cells = <1>;
-			#size-cells = <0>;
-		};
+
+    ethernet@e000b000 {
+      #interrupt-cells = <1>;
+      xlnx,ptp-enet-clock = <0x6750918>;
+      compatible = "cdns,zynq-gem", "cdns,gem";
+      clocks =< &clkc 30>, <&clkc 30>, <&clkc 13>;
+      local-mac-address = [00 0a 35 00 1e 53];
+      clock-names = "pclk", "hclk", "tx_clk";
+      status = "okay";
+      interrupts-extended = <&plic0 3>;
+      reg = <0 0xe000b000 0 0x1000>;
+      phy-mode = "rgmii-id";
+    };
+axi_dma_1: dma@50000000 {
+                       #dma-cells = <1>;
+                       clock-names = "s_axi_lite_aclk", "m_axi_sg_aclk", "m_axi_mm2s_aclk", "m_axi_s2mm_aclk";
+                       clocks = <&clkc 15>, <&clkc 15>, <&clkc 15>, <&clkc 15>;
+                       compatible = "xlnx,axi-dma-1.00.a";
+                       interrupts-extended = <&plic0 4 &plic0 5>;
+                       reg = <0 0x50000000 0 0x10000 >;
+                       xlnx,addrwidth = <0x20>;
+                       xlnx,include-sg ;
+                       dma-channel@50000000 {
+                               compatible = "xlnx,axi-dma-mm2s-channel";
+                               dma-channels = <0x1>;
+                               interrupts-extended = <&plic0 4>;
+                               xlnx,datawidth = <0x20>;
+                               xlnx,device-id = <0x0>;
+                               xlnx,include-dre ;
+                       };
+                       dma-channel@50000030 {
+                               compatible = "xlnx,axi-dma-s2mm-channel";
+                               dma-channels = <0x1>;
+                               interrupts-extended = <&plic0 5>;
+                               xlnx,datawidth = <0x20>;
+                               xlnx,device-id = <0x0>;
+                               xlnx,include-dre ;
+                       };
+               };
+
 
         slcr: slcr@f8000000 {
              #address-cells = <2>;
@@ -120,8 +149,8 @@
   };
 
   chosen {
-    //  bootargs = "root=/dev/mmcblk0p2 rw rootwait console=ttyPS0,921600 sdhci.debug_quirks=96";
-      bootargs = "root=/dev/mmcblk0p2 rw rootwait console=hvc0 sdhci.debug_quirks=96";
+//     bootargs = "root=/dev/mmcblk0p2 rw rootwait console=hvc0 ";
+      bootargs = "console=hvc0 root=/dev/mmcblk0p2 rw rootfstype=ext4 rootwait";
      // bootargs = "root=/dev/ram rw rootfstype=ramfs console=hvc0 sdhci.debug_quirks=96";
     //bootargs = "root=/dev/mmcblk0p2 rootwait rw  console=hvc0 sdhci.debug_quirks=96";
    // bootargs = "root=/dev/sda rw  console=hvc0";

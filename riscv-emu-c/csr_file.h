@@ -964,7 +964,7 @@ static uint_t plic_read( uint_t offset)
             if (mip.SEIP==1){
                 
                 plic_served_irq = true;
-                val =1;
+                val =5;
                 mip.SEIP = 0;
             }
             else 
