@@ -20,8 +20,8 @@
 #ifdef TEMU
 
 extern "C" {
-#include "temu/temu.h"
 #include "temu/cutils.h"
+#include "temu/temu.h"
 #include "temu/iomem.h"
 #include "temu/virtio.h"
 #include "temu/machine.h"

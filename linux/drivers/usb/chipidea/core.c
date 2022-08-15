@@ -250,11 +250,10 @@ static int hw_device_init(struct ci_hdrc *ci, void __iomem *base)
 	hw_write(ci, OP_USBSTS, 0xffffffff, 0xffffffff);
 
 	ci->rev = ci_get_revision(ci);
-
+    hw_write_id_reg( ci,0x170,0xffffffff,0x600a0067);
 	dev_dbg(ci->dev,
 		"revision: %d, lpm: %d; cap: %px op: %px\n",
 		ci->rev, ci->hw_bank.lpm, ci->hw_bank.cap, ci->hw_bank.op);
-
 	/* setup lock mode ? */
 
 	/* ENDPTSETUPSTAT is '0' by default */

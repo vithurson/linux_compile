@@ -1,10 +1,17 @@
 all : comp
 
+CFLAGS = -Wall -Wno-unused-function -pthread
+
+CXXFLAGS += `pkg-config opencv4 --cflags`
+
+LDFLAGS += `pkg-config opencv4 --libs`
+
+
 comp :
-	g++ emu.cpp -o emu -std=c++11 
+	g++ $(CFLAGS) $(CXXFLAGS) $(LDFLAGS) emu.cpp -o emu -std=c++11 
 
 comp_with_temu : temu_comp
-	g++ -c emu.cpp -o emu.o -std=c++11 -DTEMU
+	g++ -c emu.cpp -o emu.o -std=c++11 -DTEMU $(CFLAGS) $(CXXFLAGS) $(LDFLAGS)
 	g++ -o emu  -DTEMU emu.o temu/virtio.o temu/pci.o temu/fs.o temu/cutils.o temu/iomem.o temu/simplefb.o temu/json.o temu/machine.o temu/temu.o temu/slirp/bootp.o temu/slirp/ip_icmp.o temu/slirp/mbuf.o temu/slirp/slirp.o temu/slirp/tcp_output.o temu/slirp/cksum.o temu/slirp/ip_input.o temu/slirp/misc.o temu/slirp/socket.o temu/slirp/tcp_subr.o temu/slirp/udp.o temu/slirp/if.o temu/slirp/ip_output.o temu/slirp/sbuf.o temu/slirp/tcp_input.o temu/slirp/tcp_timer.o temu/fs_disk.o temu/fs_net.o temu/fs_wget.o temu/fs_utils.o temu/block_net.o temu/sdl.o temu/riscv_machine.o temu/softfp.o temu/riscv_cpu32.o temu/riscv_cpu64.o temu/riscv_cpu128.o temu/x86_cpu.o temu/x86_machine.o temu/ide.o temu/ps2.o temu/vmmouse.o temu/pckbd.o temu/vga.o -lrt -lcurl -lcrypto -lSDL
 
 image :

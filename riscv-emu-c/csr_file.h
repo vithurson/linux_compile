@@ -1095,6 +1095,7 @@ uint_t excep_function(uint_t PC, uint_t mecode , uint_t secode, uint_t uecode, p
 */
     if ( handling_mode == UMODE){
         exit(4);
+        cout<<"exception handled umode"<<endl;
         cp = UMODE;
     	ustatus.upie = ustatus.uie;
         ustatus.uie  = 0;
@@ -1204,12 +1205,13 @@ uint_t interrupt_function(uint_t PC, uint_t mecode, plevel_t current_privilage){
         if (stvec.mode ==0b1){
             exit(2);
             new_PC = stvec.base + 4*ecode;
-            //cout << "stvec mode 1" << endl;
+            cout << "stvec mode 1" << endl;
         }
         else if (stvec.mode ==0b0){
             //exit(57);
             new_PC = stvec.base ;
             if (current_privilage == MMODE){
+                    cout<<"mmode issue"<<endl;
                 exit(5);
             }
             //cout << "stvec mode 2"<<hex<< new_PC<< endl;
@@ -1431,19 +1433,19 @@ uint_t translate(uint_t virtual_addr, ttype_t translation_type, plevel_t current
                 }
             }
 
-            if ( (translation_type==STOR) & ((pte_final.A==0) |  (pte_final.D==0) ) ){ // page fault according to spec - point 7
-                 //cout<<"dirty bit not set"<<endl;
-                return -1;
-            } else if ((translation_type==INST|translation_type==LOAD) & (pte_final.A==0)){
-                 //cout<<"access bit not set"<<endl;
+            if ( pte_final.A==0| ((translation_type==STOR) & ( (pte_final.D==0|pte_final.W==0) ) )){ // page fault according to spec - point 7
                 return -1;
             } 
+            //else if ((translation_type==INST|translation_type==LOAD) & (pte_final.A==0)){
+            //     //cout<<"access bit not set"<<endl;
+            //    return -1;
+            //} 
             // else if ( (translation_type==LOAD) & (pte_final.R==0) ){
             //     return -1;
             // }
-             else if ( (translation_type==STOR) & (pte_final.W==0) ){
-                return -1;
-            }
+            // else if ( (translation_type==STOR) & (pte_final.W==0) ){
+            //    return -1;
+            //}
             return phy_addr.read_reg();
 
             break;

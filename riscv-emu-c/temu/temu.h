@@ -67,9 +67,9 @@ typedef struct {
     BOOL resize_pending;
 } STDIODevice;
 
-struct termios oldtty;
-int old_fd0_flags;
-STDIODevice *global_stdio_device;
+inline struct termios oldtty;
+inline int old_fd0_flags;
+inline STDIODevice *global_stdio_device;
 
 void term_exit(void);
 

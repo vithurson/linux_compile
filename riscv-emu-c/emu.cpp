@@ -4,8 +4,14 @@
 #include <termios.h>
 #include <unistd.h>
 #include <fcntl.h>
+
+#include <opencv2/core.hpp>
+#include <iostream>
 //#define echo
 #ifdef TEMU
+#include <fstream>
+using std::ofstream;
+
 BlockDevice drive1, *drive=&drive1;
 
 char *fname;
@@ -43,6 +49,39 @@ int kbhit(void)
   return 0;
   
 }
+uint32_t image[1920*1080];
+
+void imfeed(int line_no,int pix_colum,int pix_color,char pixval,bool print){
+    char new_pix_color = 0;
+    if(pix_color==1)
+        new_pix_color =1;
+    if(pix_color==0)
+        new_pix_color =2;
+    if(pix_color==2)
+        new_pix_color =0;
+    unsigned char pix_value = pixval & 0xff;
+    image[line_no*1920+pix_colum] = ((image[line_no*1920+pix_colum]& (~(0xff<<(new_pix_color*8))) ) | (pix_value<< (new_pix_color*8)));
+    if(print)
+        printf("%0x\n",image[line_no*1920+pix_colum]);
+}
+ int insno=0;
+int writePPM(uint16_t width, uint16_t height, uint32_t *image)
+{
+  int i, j;
+  char fn[32];
+  sprintf(fn, "view.ppm");
+  FILE *fp = fopen(fn, "wb");
+  if (fp==NULL)
+    return -1;
+  fprintf(fp, "P6\n%d %d\n255\n", width, height);
+  for (j=0; j<height; j++)
+  {
+    for (i=0; i<width; i++)
+      fwrite((char *)(image + j*width + i), 1, 3, fp);
+  }
+  fclose(fp);
+  return 0;
+}
 
  void unset_echo() {
 #ifdef echo
@@ -53,8 +92,10 @@ int kbhit(void)
 #endif
  }
 
-
 int main(int argc, char** argv){
+    ofstream outdata; // outdata is like cin
+
+outdata.open("example2.dat"); 
   unset_echo();
     if (argc==2){
         
@@ -264,6 +305,9 @@ int main(int argc, char** argv){
 
     auto start = chrono::steady_clock::now();
     
+        for(int i = 0;i<1920*1080;i++) {
+                image[i]=0;
+          }
     while (1){
 
 
@@ -309,7 +353,7 @@ int main(int argc, char** argv){
 
 
 
-        if (PC_phy >= DRAM_BASE & PC_phy<(DRAM_BASE+0x10000000)){ // mapping to RAM
+        if (PC_phy >= DRAM_BASE & PC_phy<(DRAM_BASE+0x9000000)){ // mapping to RAM
             PC_phy = PC_phy - DRAM_BASE; // mapping to emulator array memory
         }
         else{ // mapping to peripheral
@@ -389,7 +433,6 @@ int main(int argc, char** argv){
         if ((PC%4)!=0){
             cout << "PC mis aligned "<<hex<<PC <<endl;
         }
-        //printf("PC %0x ins %0x PHY_PC %0x\n",PC,instruction,PC_phy);
         lPC = PC;
         PC += 4;
         switch(opcode){
@@ -468,8 +511,8 @@ int main(int argc, char** argv){
                 if ((load_addr != FIFO_ADDR_RX) && ((load_addr != FIFO_ADDR_TX))){
                     {
                         if(load_addr==0){
-                            printf("null pointer exception \n");
-                            exit(0);
+                            //printf("null pointer exception \n");
+                           // exit(0);
                         }
 
                         load_addr_phy = translate(load_addr, LOAD, cp);
@@ -494,10 +537,10 @@ int main(int argc, char** argv){
                             continue;
                         }
 
-                        if ((load_addr_phy >= DRAM_BASE) & (load_addr_phy<= (DRAM_BASE+0x10000000))){ // mapping to RAM
+                        if ((load_addr_phy >= DRAM_BASE) & (load_addr_phy<= (DRAM_BASE+0x9000000))){ // mapping to RAM
                             load_addr_phy = load_addr_phy - DRAM_BASE; // mapping to emulator array memory
 
-                            if (load_addr_phy > 0x10000000){
+                            if (load_addr_phy > 0x9000000){
                                 cout << "ERROR : Exceeds RAM limit" << endl;
                                 exit(0);
                             }
@@ -523,40 +566,7 @@ int main(int argc, char** argv){
                             }
 #endif
                             else {
-                                    if ( load_addr_phy == FIFO_ADDR_RX ) {
-                                        if(kbhit()){
-                                            wb_data=0;
-                                            }
-                                        else wb_data=2;
-                                    //     printf("waiting 1\n");
-                                    //    int c =getchar();
-                                    //     printf("waiting 2\n");
-                                    //    
-                                    //    if (c != EOF){
-                                    //        wb_data = 0 ;
-                                    //        fifo_queue.push(c);
-                                    //    }
-                                    //    else
-                                    //     wb_data = 2 ;
-
-                                        load_data = wb_data;
-                                    }
-                                    else if ( load_addr_phy == FIFO_ADDR_TX ){
-                                        // if(kbhit())
-                                        wb_data=getchar();
-                                        //if (fifo_queue.empty()){
-                                        //    wb_data = (uint_t)-1 ;
-                                        //}
-                                        //else{
-                                        //    wb_data = fifo_queue.front();
-                                        //    fifo_queue.pop();
-                                        //}
-                                        load_data = wb_data;
-
-                                    }
-                                    else {
-                                            load_data=0x1000;
-                                    }
+                                           load_data=0x1000;
                                 //cout << "New peripheral load"<< hex << load_addr_phy<<"val"<<load_addr<<endl;
                                 //exit(0);
                             }
@@ -668,6 +678,10 @@ int main(int argc, char** argv){
                 else if ( load_addr == FIFO_ADDR_TX ){
                     // if(kbhit())
                     wb_data=getchar();
+                    if(wb_data==41){
+                       cout<<"screenshot saved"<<endl;
+                       writePPM(1920,1080,(uint32_t*)&image) ;
+                    }
                     //if (fifo_queue.empty()){
                     //    wb_data = (uint_t)-1 ;
                     //}
@@ -717,11 +731,11 @@ int main(int argc, char** argv){
                             continue;
                         }
 
-                    if ((store_addr_phy >= DRAM_BASE) & (store_addr_phy<= (DRAM_BASE+0x10000000)) ){ // mapping to RAM
+                    if ((store_addr_phy >= DRAM_BASE) & (store_addr_phy< (DRAM_BASE+0x9000000)) ){ // mapping to RAM
                         store_addr_phy = store_addr_phy - DRAM_BASE; // mapping to emulator array memory
-                          if (store_addr_phy >= (0x10000000)){
+                          if (store_addr_phy >= (0x9000000)){
                                 cout << "Physical memory limit exceeded : "<<hex<<store_addr_phy+DRAM_BASE<<endl;
-                        printf("dram size %lx\n", 0x10000000);
+                        printf("dram size %lx\n", 0x9000000);
                                 cout << "PC : "<<hex<<PC_phy<<endl;
                             }else{
                                 
@@ -787,7 +801,49 @@ int main(int argc, char** argv){
                                 #endif
                                 cout << (char)reg_file[rs2]<<std::flush;
                             }
-                         //   cout << "New peripheral store"<< hex << store_addr<<" value "<<hex<<reg_file[rs2]<<endl;
+                            if((store_addr_phy >= 0x9000000) & store_addr_phy<0x10000000){
+                                  int kk = store_addr_phy - 0x9000000;
+                                  int byte_start = kk;
+                                  char pixval; 
+                                 if(func3==3){
+                                  for(int i =byte_start; i<(byte_start+8);i++) {
+                                        int line_no = i/(1920*4); int colum_byte = i%(1920*4);
+                                        int pix_colum = colum_byte/3;
+                                        int pix_color = colum_byte%3;
+                                        bool print =0;
+
+                                        pixval=(reg_file[rs2] >> ((i-byte_start)*8)) & 0xff;
+                                        //if(reg_file[rs2]!=0){
+                                         //   print = 1;
+                                            //printf("address %0x byte_start %0d, line_no %0d, pix_colum %0d,colum_byte %0d, pix_color%0d pixval %0d func %0d\n",store_addr_phy,byte_start,line_no,pix_colum,colum_byte,pix_color,pixval,func3);
+                                        //}
+                                        //if(reg_file[rs2]!=0)
+                                        //    printf("feeding\n");
+                                        imfeed(line_no,pix_colum,pix_color, pixval, print);
+                                  }
+                                }
+                                else if(func3==2){
+                                  for(int i =byte_start; i<(byte_start+4);i++) {
+                                        int line_no = i/(1920*4); 
+                                        int colum_byte = i%(1920*4);
+                                        int pix_colum = colum_byte/3;
+                                        int pix_color = colum_byte%3;
+                                        bool print =0;
+
+                                        pixval=((reg_file[rs2] & 0xFFFFFFFF) >> ((i-byte_start)*8)) & 0xff;
+                                        //if(reg_file[rs2]!=0){
+                                         //   print = 1;
+                                            //printf("address %0x byte_start %0d, line_no %0d, pix_colum %0d,colum_byte %0d, pix_color%0d pixval %0d func %0d\n",store_addr_phy,byte_start,line_no,pix_colum,colum_byte,pix_color,pixval,func3);
+                                        //}
+                                        //if(reg_file[rs2]!=0)
+                                        //    printf("feeding\n");
+                                        imfeed(line_no,pix_colum,pix_color, pixval, print);
+                                  }
+                                    
+                                }
+                            }
+                            else{
+                            }
                             //exit(0);
                         }
                     }
@@ -1082,7 +1138,7 @@ int main(int argc, char** argv){
 
                             continue;
                         }
-                    if(load_addr_phy>DRAM_BASE & load_addr_phy<DRAM_BASE+0x10000000) {
+                    if(load_addr_phy>DRAM_BASE & load_addr_phy<DRAM_BASE+0x9000000) {
                         
                         load_addr_phy = load_addr_phy -DRAM_BASE;
                     }
@@ -1316,7 +1372,7 @@ int main(int argc, char** argv){
 
                             continue;
                         }
-                    if(load_addr_phy>DRAM_BASE & load_addr_phy<(DRAM_BASE+0x10000000)) {
+                    if(load_addr_phy>DRAM_BASE & load_addr_phy<(DRAM_BASE+0x9000000)) {
                         load_addr_phy = load_addr_phy -DRAM_BASE;
                     }
                     else {
@@ -1823,8 +1879,11 @@ int main(int argc, char** argv){
             PC = excep_function(PC,CAUSE_MISALIGNED_STORE,CAUSE_MISALIGNED_STORE,CAUSE_MISALIGNED_STORE,cp);
             write_tval = true;
         }
-
-
+        insno++;
+        if((insno%150000000)==0){
+            printf("updating screen %0lx\n",PC);
+                       writePPM(1920,1080,(uint32_t*)&image) ;
+        }
         if (lPC==PC){
             cout << "Infinite loop!"<<endl;
             auto end = chrono::steady_clock::now();
