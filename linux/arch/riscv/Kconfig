@@ -48,7 +48,6 @@ config RISCV
 	select BINFMT_FLAT_NO_DATA_START_OFFSET if !MMU
 	select BUILDTIME_TABLE_SORT if MMU
 	select CLONE_BACKWARDS
-	select CLINT_TIMER if !MMU
 	select COMMON_CLK
 	select CPU_PM if CPU_IDLE
 	select EDAC_SUPPORT
@@ -145,7 +144,7 @@ config ARCH_MMAP_RND_COMPAT_BITS_MAX
 # set if we run in machine mode, cleared if we run in supervisor mode
 config RISCV_M_MODE
 	bool
-	default !MMU
+	default n 
 
 # set if we are running in S-mode and can use SBI calls
 config RISCV_SBI
@@ -163,7 +162,7 @@ config MMU
 config PAGE_OFFSET
 	hex
 	default 0xC0000000 if 32BIT
-	default 0x80000000 if 64BIT && !MMU
+	default 0x80200000 if 64BIT && !MMU
 	default 0xff60000000000000 if 64BIT
 
 config KASAN_SHADOW_OFFSET
@@ -535,7 +534,7 @@ config EFI
 	select EFI_RUNTIME_WRAPPERS
 	select RISCV_ISA_C
 	depends on MMU
-	default y
+	default n
 	help
 	  This option provides support for runtime services provided
 	  by UEFI firmware (such as non-volatile variables, realtime

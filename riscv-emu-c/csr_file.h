@@ -1194,6 +1194,7 @@ uint_t interrupt_function(uint_t PC, uint_t mecode, plevel_t current_privilage){
     }
     else if ((handling_mode == SMODE) & (mstatus.sie==1)){
         mstatus.mpp = (uint_t)cp; // setting both to SMODE
+        mstatus.mpp = (uint_t)cp; // setting both to SMODE
         mstatus.spp = (uint_t)cp;
         cp = SMODE;
         sstatus.spie = sstatus.sie;

@@ -7,7 +7,7 @@
 
 #include <opencv2/core.hpp>
 #include <iostream>
-#define echo
+//#define echo
 #ifdef TEMU
 #include <fstream>
 using std::ofstream;
@@ -363,6 +363,7 @@ outdata.open("example2.dat");
 
 
         instruction = getINST(PC_phy/4,&memory);
+        //printf("%0x %0x\n",PC_phy,instruction);
 
 
         reg_file[0] = 0;
@@ -1776,7 +1777,7 @@ outdata.open("example2.dat");
                 break;
 
             default :
-                printf("default\n");
+                printf("default %0d %0x %0x\n",__LINE__,PC_phy,instruction );
                 exit(0);
                 break;
         }
@@ -1882,10 +1883,6 @@ outdata.open("example2.dat");
             write_tval = true;
         }
         insno++;
-        if((insno%150000000)==0){
-            printf("updating screen %0lx\n",PC);
-                       writePPM(1920,1080,(uint32_t*)&image) ;
-        }
         if (lPC==PC){
             cout << "Infinite loop!"<<endl;
             auto end = chrono::steady_clock::now();
