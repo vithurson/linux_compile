@@ -7,7 +7,7 @@
 
 #include <opencv2/core.hpp>
 #include <iostream>
-//#define echo
+#define echo
 #ifdef TEMU
 #include <fstream>
 using std::ofstream;
@@ -801,8 +801,8 @@ outdata.open("example2.dat");
                                 #endif
                                 cout << (char)reg_file[rs2]<<std::flush;
                             }
-                            if((store_addr_phy >= 0x9000000) & store_addr_phy<0x10000000){
-                                  int kk = store_addr_phy - 0x9000000;
+                            if((store_addr_phy >= 0x19000000) & store_addr_phy<0x20000000){
+                                  int kk = store_addr_phy - 0x19000000;
                                   int byte_start = kk;
                                   char pixval; 
                                  if(func3==3){
@@ -1580,13 +1580,15 @@ outdata.open("example2.dat");
                         break;
 
                     case 0b010 : // CSRRS     rdtime, rdcycle, rdinsret should be handled here
-
+                    
                         csr_data = csr_read(imm11_0);
 
                         if (csr_read_success) {
                             if ( (imm11_0==CYCLE) | (imm11_0==TIME) | (imm11_0==INSTRET) ){
-
-                                reg_file[rd] = csr_data;
+                                if(imm11_0==TIME){
+                                //:    printf("%0x\n time read\n",instruction);
+                                    reg_file[rd] = csr_data;
+                                }
                             }
                             else {
                                 store_data = reg_file[rs1];

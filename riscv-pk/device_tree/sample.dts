@@ -10,7 +10,7 @@
   cpus {
     #address-cells = <1>;
     #size-cells = <0>;
-    timebase-frequency = <6250000>;
+    timebase-frequency = <12500000>;
     
     CPU0: cpu@0 {
       device_type = "cpu";
@@ -19,7 +19,7 @@
       compatible = "riscv";
       riscv,isa = "rv64ima";
       mmu-type = "riscv,sv39";
-      clock-frequency = <50000000>;
+      clock-frequency = <100000000>;
       CPU0_intc: interrupt-controller {
         #interrupt-cells = <1>;
         interrupt-controller;
@@ -80,6 +80,33 @@
         no-1-8-v;
     
     };
+    axi_dma_1: dma@41e00000 {
+                       #interrupt-cells = <1>;
+                       #dma-cells = <1>;
+                       clock-names = "s_axi_lite_aclk", "m_axi_sg_aclk", "m_axi_mm2s_aclk", "m_axi_s2mm_aclk";
+                       clocks = <&clkc 15>, <&clkc 15>, <&clkc 15>, <&clkc 15>;
+                       compatible = "xlnx,axi-dma-1.00.a";
+                       interrupts-extended = <&plic0 5 &plic0 6>;
+                       reg = <0 0x41e00000 0 0x10000>;
+                       xlnx,addrwidth = <0x20>;
+                       xlnx,include-sg ;
+                       dma-channel@41e00000 {
+                               compatible = "xlnx,axi-dma-mm2s-channel";
+                               dma-channels = <0x1>;
+                               interrupts-extended = <&plic0 5>;
+                               xlnx,datawidth = <0x20>;
+                               xlnx,device-id = <0x0>;
+                               xlnx,include-dre ;
+                       };
+                       dma-channel@41e00030 {
+                               compatible = "xlnx,axi-dma-s2mm-channel";
+                               dma-channels = <0x1>;
+                               interrupts-extended = <&plic0 6>;
+                               xlnx,datawidth = <0x20>;
+                               xlnx,device-id = <0x0>;
+                               xlnx,include-dre ;
+                       };
+               };
 
     ethernet@e000b000 {
       #interrupt-cells = <1>;
@@ -108,10 +135,10 @@
         compatible = "usb-nop-xceiv";
     };
     framebuffer0: framebuffer@19000000 {
-        compatible = "simple-framebuffer";
-       reg = <0 0x9000000 0 (1920 * 1080 * 4)>;
-        width = <800>;
-        height = <600>;
+       compatible = "simple-framebuffer";
+      reg = <0 0x19000000 0 (1920 * 1080 * 4)>;
+      width = <640>;
+        height = <480>;
         stride = <(1920*4)>;
         format = "r8g8b8";
     };
@@ -144,10 +171,10 @@
   };
 
   chosen {
-//     bootargs = "root=/dev/vda rw rootwait console=hvc0 ";
+    // bootargs = "root=/dev/vda rw rootwait console=hvc0 ";
   //   bootargs = "root=/dev/vda rw rootwait console=tty0 ";
    //    bootargs = "console=hvc0 root=/dev/mmcblk0p2 rw rootfstype=ext4 rootwait";
-      bootargs = "console=hvc0 console=tty0 root=/dev/mmcblk0p2 rw rootfstype=ext4 rootwait";
+      bootargs = "console=hvc0 root=/dev/mmcblk0p2 rw rootfstype=ext4 rootwait";
      // bootargs = "root=/dev/ram rw rootfstype=ramfs console=hvc0 sdhci.debug_quirks=96";
     //bootargs = "root=/dev/mmcblk0p2 rootwait rw  console=hvc0 sdhci.debug_quirks=96";
    // bootargs = "root=/dev/sda rw  console=hvc0";
