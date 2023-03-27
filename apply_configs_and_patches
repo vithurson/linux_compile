@@ -1,6 +1,6 @@
 #!/bin/bash
 
 cp ./configs/linux/.config ./linux/.config
-cp ./configs/buildroot/.config ./linux/.config
+cp ./configs/buildroot/.config ./buildroot/.config
 cp ./patches/linux/Kconfig ./linux/arch/riscv/Kconfig
 cp ./patches/riscv-pk/mtrap.c ./riscv-pk/machine/mtrap.c
