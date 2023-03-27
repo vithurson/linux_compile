@@ -1,9 +1,12 @@
 [submodule "linux"]
 	path = linux
 	url = https://github.com/torvalds/linux.git
+    ignore = dirty
 [submodule "buildroot"]
 	path = buildroot
 	url = https://github.com/buildroot/buildroot.git
+    ignore = dirty
 [submodule "riscv-pk"]
 	path = riscv-pk
 	url = https://github.com/riscv-software-src/riscv-pk.git
+    ignore = dirty
