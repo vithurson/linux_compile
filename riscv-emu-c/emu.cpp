@@ -7,7 +7,7 @@
 
 #include <opencv2/core.hpp>
 #include <iostream>
-//#define echo
+#define echo
 #ifdef TEMU
 #include <fstream>
 using std::ofstream;
@@ -327,7 +327,7 @@ outdata.open("example2.dat");
         
 
 
-        PC_phy = translate(PC, INST, cp);
+        PC_phy = PC
 
 		if(cp ==0 & PC==0  ) 
 		{
@@ -507,7 +507,6 @@ outdata.open("example2.dat");
                 #endif
                 load_addr = reg_file[rs1] + sign_extend<uint_t>(imm11_0,12);
 
-                // load_addr_phy = translate(load_addr, LOAD, cp);
 
                 if ((load_addr != FIFO_ADDR_RX) && ((load_addr != FIFO_ADDR_TX))){
                     {
@@ -516,7 +515,7 @@ outdata.open("example2.dat");
                            // exit(0);
                         }
 
-                        load_addr_phy = translate(load_addr, LOAD, cp);
+                        load_addr_phy = load_addr
 
                         if (load_addr_phy==-1){
                             mtval = load_addr;
@@ -704,11 +703,10 @@ outdata.open("example2.dat");
                 #endif
                 store_addr = reg_file[rs1] + sign_extend<uint_t>(imm_s,12);
 
-                // store_addr_phy = translate(store_addr, STOR, cp);
  
                 if (store_addr != FIFO_ADDR_TX){                                 //& (store_addr != MTIME_ADDR) & (store_addr != MTIMECMP_ADDR)
 
-                    store_addr_phy = translate(store_addr, STOR, cp);
+                    store_addr_phy = store_addr
 
                     if (store_addr_phy==-1){
 
@@ -1116,7 +1114,7 @@ outdata.open("example2.dat");
                         printf("AMO 32\n");
                     #endif
                     load_addr = reg_file[rs1];
-                    load_addr_phy = translate(load_addr, STOR, cp);
+                    load_addr_phy = load_addr
 
                     if (load_addr_phy==-1){
                             //cout << "Page fault exception store"<<endl;
@@ -1350,7 +1348,7 @@ outdata.open("example2.dat");
                         printf("AMO 64\n");
                     #endif
                         load_addr = reg_file[rs1];
-                        load_addr_phy = translate(load_addr, STOR, cp);
+                        load_addr_phy = load_addr
 
                         if (load_addr_phy==-1){
                             //cout << "Page fault exception store"<<endl;
