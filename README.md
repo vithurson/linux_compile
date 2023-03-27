@@ -1,4 +1,5 @@
 # linux_compile
+git submodule update --init --recursive --depth=1
 all the setup required for our riscv compile
 
 add these to the ~/.bashrc
