@@ -327,7 +327,7 @@ outdata.open("example2.dat");
         
 
 
-        PC_phy = PC
+        PC_phy = PC;
 
 		if(cp ==0 & PC==0  ) 
 		{
@@ -515,7 +515,7 @@ outdata.open("example2.dat");
                            // exit(0);
                         }
 
-                        load_addr_phy = load_addr
+                        load_addr_phy = load_addr;
 
                         if (load_addr_phy==-1){
                             mtval = load_addr;
@@ -706,7 +706,7 @@ outdata.open("example2.dat");
  
                 if (store_addr != FIFO_ADDR_TX){                                 //& (store_addr != MTIME_ADDR) & (store_addr != MTIMECMP_ADDR)
 
-                    store_addr_phy = store_addr
+                    store_addr_phy = store_addr;
 
                     if (store_addr_phy==-1){
 
@@ -1114,7 +1114,7 @@ outdata.open("example2.dat");
                         printf("AMO 32\n");
                     #endif
                     load_addr = reg_file[rs1];
-                    load_addr_phy = load_addr
+                    load_addr_phy = load_addr;
 
                     if (load_addr_phy==-1){
                             //cout << "Page fault exception store"<<endl;
@@ -1348,7 +1348,7 @@ outdata.open("example2.dat");
                         printf("AMO 64\n");
                     #endif
                         load_addr = reg_file[rs1];
-                        load_addr_phy = load_addr
+                        load_addr_phy = load_addr;
 
                         if (load_addr_phy==-1){
                             //cout << "Page fault exception store"<<endl;
