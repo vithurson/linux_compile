@@ -95,7 +95,6 @@ int writePPM(uint16_t width, uint16_t height, uint32_t *image)
 int main(int argc, char** argv){
     ofstream outdata; // outdata is like cin
 
-outdata.open("example2.dat"); 
   unset_echo();
     if (argc==2){
         
