@@ -1,6 +1,8 @@
 # linux_compile
-git submodule update --init --recursive --depth=1
+
 all the setup required for our riscv compile
+
+./submodule_update
 
 add these to the ~/.bashrc
 export RISCV=/home/vithurson/buildroot-2022.02.3/output/host                                                                                
