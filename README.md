@@ -26,4 +26,5 @@ cd build
 
 riscv-emu-c
 make
+
 ./emu ../riscv-pk/build/bbl
