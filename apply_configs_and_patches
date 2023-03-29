@@ -2,5 +2,5 @@
 
 cp ./configs/linux/.config ./linux/.config
 cp ./configs/buildroot/.config ./buildroot/.config
-cp ./patches/linux/* ./linux/*
+cp -rf ./patches/linux/* ./linux/
 cp ./patches/riscv-pk/mtrap.c ./riscv-pk/machine/mtrap.c
