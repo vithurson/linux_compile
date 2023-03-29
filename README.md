@@ -32,8 +32,9 @@ mkdir build
 cd build
 
 ../../config_build_bbl
+
 riscv-emu-c
------------
+------------
 make
 
 ./emu ../riscv-pk/build/bbl
