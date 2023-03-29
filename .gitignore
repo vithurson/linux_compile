@@ -2,3 +2,6 @@
 ./buildroot/
 ./riscv-pk/
 ./riscv-emu-c/emu
+*.swp
+*.txt
+riscv-emu-c/emu

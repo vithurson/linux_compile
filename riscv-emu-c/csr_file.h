@@ -1219,7 +1219,6 @@ uint_t interrupt_function(uint_t PC, uint_t mecode, plevel_t current_privilage){
         }
     }
     else if ((handling_mode == MMODE) & (mstatus.mie==1)){
-        //cout << "excep MMODE : " << mtvec.base << endl;
         mstatus.mpp = (uint_t)cp;
         cp = MMODE;
         mstatus.mpie = mstatus.mie;
@@ -1234,14 +1233,10 @@ uint_t interrupt_function(uint_t PC, uint_t mecode, plevel_t current_privilage){
         }
         else if (mtvec.mode ==0b0){
             new_PC = mtvec.base ;
-        if (current_privilage == MMODE){
-            exit(5);
-        }
     }
 
     }
     else {
-        //cout << "Unrecognized mode for interrupt_function" <<endl;
         return PC;
     }
 

@@ -327,7 +327,10 @@ int main(int argc, char** argv){
 
 
         PC_phy = PC;
-
+        if(cp==1){
+            printf("went to supervisor \n");
+            exit(__LINE__);
+        }
 		if(cp ==0 & PC==0  ) 
 		{
 			cout <<"instruction " << hex<<instruction<<endl;
@@ -1790,7 +1793,7 @@ int main(int argc, char** argv){
 
         
 
-        mip.STIP = (mtime >= mtimecmp );
+        mip.MTIP = (mtime >= mtimecmp );
 
         //if (mtime >= mtimecmp )
         //    cout<< "################## Timer fired ###################"<<endl;
@@ -1815,10 +1818,6 @@ int main(int argc, char** argv){
 
             PC = interrupt_function(PC, CAUSE_MACHINE_EXT_INT, cp);
         }
-        else if( mie.MTIE & mip.MTIP) {
-
-            PC = interrupt_function(PC, CAUSE_MACHINE_TIMER_INT, cp);
-        }
         else if( mie.MSIE & mip.MSIP) {
             PC = interrupt_function(PC, CAUSE_MACHINE_SOFT_INT, cp);
         }
@@ -1829,6 +1828,9 @@ int main(int argc, char** argv){
         else if( mie.STIE & mip.STIP) {
             // printf("################## Timer fired ###################\n");
             PC = interrupt_function(PC, CAUSE_SUPERVISOR_TIMER_INT, cp);
+        }
+        else if( mie.MTIE & mip.MTIP) {
+            PC = interrupt_function(PC, CAUSE_MACHINE_TIMER_INT, cp);
         }
         else if( mie.SSIE & mip.SSIP) {
              PC = interrupt_function(PC, CAUSE_SUPERVISOR_SOFT_INT, cp);
