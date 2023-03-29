@@ -1,10 +1,13 @@
 # linux_compile
 
-all the setup required for our riscv compile
+clone submodules
+----------------
 
 ./submodule_update
 
+
 add these to the ~/.bashrc
+--------------------------
 export RISCV=/home/vithurson/buildroot-2022.02.3/output/host                                                                                
 export PATH=$PATH:$RISCV/bin                                                   
 export ARCH=riscv
@@ -28,7 +31,7 @@ mkdir build
 
 cd build
 
-../configure --prefix=$RISCV --host=riscv64-buildroot-linux-uclibc --with-arch=rv64ima --with-payload=../../linux/vmlinux --enable-print-device-tree --with-dts=../../device_tree/sample.dts --with-abi=lp64 --with-mem-start=0x10000000
+../configure --prefix=$RISCV --host=riscv64-buildroot-linux-uclibc --with-arch=rv64ima --with-payload=../../linux/vmlinux --enable-print-device-tree --with-dts=../device_tree/sample.dts --with-abi=lp64 --with-mem-start=0x10000000 --disable-vm --enable-boot-machine 
 
 riscv-emu-c
 -----------
