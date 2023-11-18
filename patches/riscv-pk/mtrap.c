@@ -26,9 +26,9 @@ static uintptr_t mcall_console_putchar(uint8_t ch)
 {
   //*(int*) 0xe0001030 = ch;
 
-  volatile int *x = (int *)0xe000002c;
+  volatile int *x = (int *)0xe000102c;
   while ((*x&16)==16);
-  *(int*) 0xe0000030= ch;
+  *(int*) 0xe0001030= ch;
   
   // if (uart) {
   //   uart_putchar(ch);
@@ -72,11 +72,11 @@ static void send_ipi(uintptr_t recipient, int event)
 
 static uintptr_t mcall_console_getchar()
 {
-  volatile int *x = (int*)0xe000002c;
+  volatile int *x = (int*)0xe000102c;
   if((*x&0x2)==2){                     //checking the data available bit in line status reg
     return -1;
   }else{
-    int *c =(int *) 0xe0000030;
+    int *c =(int *) 0xe0001030;
     return *c;
   }
 
