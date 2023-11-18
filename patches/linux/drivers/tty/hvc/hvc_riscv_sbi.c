@@ -19,9 +19,9 @@ static int hvc_sbi_tty_put(uint32_t vtermno, const char *buf, int count)
 	int i;
 
 	for (i = 0; i < count; i++){
-         volatile int *x = (int *)0xe000002c;
+         volatile int *x = (int *)0xe000102c;
          while ((*x&16)==16);
-         *(int*) 0xe0000030= buf[i];
+         *(int*) 0xe0001030= buf[i];
     }
 
 	return i;
@@ -31,8 +31,8 @@ static int hvc_sbi_tty_get(uint32_t vtermno, char *buf, int count)
 {
 	int i;
 	for (i = 0; i < count; i++) {
-        volatile int *c = (int*) 0xe0000030;
-        volatile int *x = (int*) 0xe000002c;
+        volatile int *c = (int*) 0xe0001030;
+        volatile int *x = (int*) 0xe000102c;
 		if((*x&0x2)==2){                     //checking the data available bit in line status reg
             break;
 		}
