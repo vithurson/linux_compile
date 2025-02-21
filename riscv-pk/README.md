@@ -1,1 +1,0 @@
-../configure --prefix=$RISCV --host=riscv64-buildroot-linux-uclibc --with-arch=rv64ima --with-payload=../../linux/vmlinux --enable-print-device-tree --with-dts=../device_tree/sample.dts --with-abi=lp64 --with-mem-start=0x10000000
