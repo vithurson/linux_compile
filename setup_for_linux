@@ -1,0 +1,73 @@
+#!/bin/bash
+
+# Function to find the buildroot directory
+find_buildroot_dir() {
+    local current_dir="$PWD"
+    
+    # Check if buildroot directory exists in current path
+    if [[ ! -d "$current_dir/buildroot" && ! -d "$current_dir" ]]; then
+        echo "Error: Could not find buildroot directory in current path" >&2
+        return 1
+    fi
+    
+    # If buildroot exists as a directory, use that
+    if [[ -d "$current_dir/buildroot" ]]; then
+        echo "$current_dir/buildroot"
+    else
+        echo "$current_dir"
+    fi
+}
+
+# Function to validate RISCV toolchain
+validate_toolchain() {
+    local riscv_path="$1"
+    
+    # Check if the bin directory exists
+    if [[ ! -d "$riscv_path/bin" ]]; then
+        echo "Error: RISCV toolchain bin directory not found at $riscv_path/bin" >&2
+        echo "Please run 'make' in your buildroot directory to build the toolchain" >&2
+        echo "Command to run: cd $BUILDROOT_DIR && make" >&2
+        return 1
+    fi
+    
+    # Check if the cross-compiler exists
+    if [[ ! -x "$riscv_path/bin/riscv64-buildroot-linux-gnu-gcc" ]]; then
+        echo "Error: RISC-V cross-compiler not found or not executable" >&2
+        echo "Please run 'make' in your buildroot directory to build the toolchain" >&2
+        echo "Command to run: cd $BUILDROOT_DIR && make" >&2
+        return 1
+    fi
+    
+    return 0
+}
+
+# Main script
+main() {
+    # Find buildroot directory
+    BUILDROOT_DIR=$(find_buildroot_dir)
+    if [[ $? -ne 0 ]]; then
+        exit 1
+    fi
+    
+    # Set RISCV path
+    export RISCV="$BUILDROOT_DIR/output/host"
+    
+    # Validate toolchain
+    if ! validate_toolchain "$RISCV"; then
+        exit 1
+    fi
+    
+    # Export required environment variables
+    export PATH="$PATH:$RISCV/bin"
+    export ARCH=riscv
+    export CROSS_COMPILE=riscv64-buildroot-linux-gnu-
+    
+    echo "RISC-V environment variables set successfully:"
+    echo "RISCV=$RISCV"
+    echo "PATH updated with: $RISCV/bin"
+    echo "ARCH=$ARCH"
+    echo "CROSS_COMPILE=$CROSS_COMPILE"
+}
+
+# Execute main function
+main

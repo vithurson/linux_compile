@@ -1,0 +1,11 @@
+#!/bin/bash
+
+# Configuration command for RISC-V build
+../configure \
+    --prefix=$RISCV \
+    --host=riscv64-buildroot-linux-gnu \
+    --with-arch=rv64ima \
+    --with-payload=../../linux/vmlinux \
+    --enable-print-device-tree \
+    --with-dts=../../device_tree/sample.dts \
+    --with-abi=lp64

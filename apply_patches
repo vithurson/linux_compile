@@ -1,0 +1,2 @@
+#!/bin/bash
+cp ./patches/riscv-pk/mtrap.c ./riscv-pk/machine/mtrap.c
