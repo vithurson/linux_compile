@@ -5,7 +5,6 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-#include <opencv2/core.hpp>
 #include <iostream>
 #define echo
 #ifdef TEMU
@@ -662,33 +661,13 @@ outdata.open("example2.dat");
                         wb_data=0;
                         }
                     else wb_data=2;
-                //     printf("waiting 1\n");
-                //    int c =getchar();
-                //     printf("waiting 2\n");
-                //    
-                //    if (c != EOF){
-                //        wb_data = 0 ;
-                //        fifo_queue.push(c);
-                //    }
-                //    else
-                //     wb_data = 2 ;
-
+           
                     reg_file[rd] = wb_data;
                 }
                 else if ( load_addr == FIFO_ADDR_TX ){
                     // if(kbhit())
                     wb_data=getchar();
-                    if(wb_data==41){
-                       cout<<"screenshot saved"<<endl;
-                       writePPM(1920,1080,(uint32_t*)&image) ;
-                    }
-                    //if (fifo_queue.empty()){
-                    //    wb_data = (uint_t)-1 ;
-                    //}
-                    //else{
-                    //    wb_data = fifo_queue.front();
-                    //    fifo_queue.pop();
-                    //}
+      
                     reg_file[rd] = wb_data;
 
                 }
