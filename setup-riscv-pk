@@ -4,8 +4,13 @@
 ../configure \
     --prefix=$RISCV \
     --host=riscv64-buildroot-linux-gnu \
-    --with-arch=rv64ima \
+    --with-arch=rv64ima_zicsr_zifencei \
     --with-payload=../../linux/vmlinux \
     --enable-print-device-tree \
     --with-dts=../../device_tree/sample.dts \
     --with-abi=lp64
+
+# Note: Added both _zicsr and _zifencei extensions to support:
+# - CSR instructions (zicsr)
+# - Fence.i instruction (zifencei)
+# Make sure $RISCV environment variable is set before running

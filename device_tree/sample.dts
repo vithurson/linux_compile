@@ -1,0 +1,51 @@
+/dts-v1/;
+
+/ {
+  #address-cells = <2>;
+  #size-cells = <2>;
+  compatible = "shakti,spike-bare-dev";
+  model = "shakti,spike-bare";
+
+  cpus {
+    #address-cells = <1>;
+    #size-cells = <0>;
+    timebase-frequency = <6250000>;
+    
+    CPU0: cpu@0 {
+      device_type = "cpu";
+      reg = <0>;
+      status = "okay";
+      compatible = "riscv";
+      riscv,isa = "rv64ima";
+      clock-frequency = <50000000>;
+      CPU0_intc: interrupt-controller {
+        #interrupt-cells = <1>;
+        interrupt-controller;
+        compatible = "riscv,cpu-intc";
+        phandle = < 0x1 > ;
+      };
+    };
+  };
+  memory@0x10000000 {
+    device_type = "memory";
+    reg = <0x0 0x10000000 0x0 0x9000000 >;
+  };
+  soc {
+    #address-cells = <2>;
+    #size-cells = <2>;
+    compatible = "shakti,spike-bare-soc", "simple-bus";
+    ranges;
+    clint@2000000 {
+      compatible = "riscv,clint0";
+      interrupts-extended = <0x1 7 0x1 3>;
+      reg = <0x0 0x2000000 0x0 0xc0000>;
+    };
+
+
+  };
+
+  chosen {
+    bootargs = "root=/dev/ram rw rootfstype=ramfs console=hvc0";
+  };
+
+};
